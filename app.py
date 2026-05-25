@@ -3,15 +3,7 @@ import tensorflow as tf
 import random
 import os
 
-# ==========================================
-# 1. LOCK SEED GLOBAL (AGAR DETERMINISTIK)
-# ==========================================
 SEED = 49
-os.environ['PYTHONHASHSEED'] = str(SEED)
-os.environ["TF_DETERMINISTIC_OPS"] = "1"
-os.environ["TF_CUDNN_DETERMINISTIC"] = "1"
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-
 tf.keras.utils.set_random_seed(SEED)
 tf.config.experimental.enable_op_determinism()
 
@@ -24,11 +16,13 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolu
 from keras.models import Sequential
 from keras.layers import Input, GRU, Dropout, Dense
 from keras.optimizers import Adam
-from keras.callbacks import EarlyStopping
 from keras.backend import clear_session
 import gc
 from pyswarms.single import GlobalBestPSO
 
+# ==========================================
+# 1. KUNCI ALL SEEDS DI AWAL SKRIP
+# ==========================================
 def reset_seeds(seed=SEED):
     os.environ['PYTHONHASHSEED'] = str(seed)
     random.seed(seed)
@@ -38,145 +32,46 @@ def reset_seeds(seed=SEED):
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
     tf.config.experimental.enable_op_determinism()
 
-# Layout Judul Aplikasi
-st.set_page_config(page_title="Prediksi Emas GRU Hybrid", layout="wide")
-st.title("Prediksi Harga Emas dengan Arsitektur GRU")
-st.write("Aplikasi komputasi Statistika untuk membandingkan model GRU Standar (Adam) dengan GRU-PSO.")
+st.title("Aplikasi Prediksi Harga Emas GRU-PSO")
 
 # Input File dari User
 uploaded_file = st.file_uploader("Unggah File Data Emas (.csv atau .xlsx)", type=["csv", "xlsx"])
 
 if uploaded_file is not None:
-    # Pra-pemrosesan Data (Sinkronisasi Gaya Colab)
+    # Membaca data dengan aman
     if uploaded_file.name.endswith('.csv'):
         emas = pd.read_csv(uploaded_file)
     else:
         emas = pd.read_excel(uploaded_file)
         
-    emas = emas[['Tanggal', 'Terakhir']]
-    emas.dropna(inplace=True)
-
-    col_tanggal = emas.columns[0]
-    emas[col_tanggal] = pd.to_datetime(emas[col_tanggal], dayfirst=True)
-
-    # Urutkan data dari yang terlama ke terbaru (Lama ke Baru)
-    emas = emas.sort_values(by=col_tanggal).reset_index(drop=True)
-    st.success("Data berhasil diunggah dan disinkronkan!")
+    st.success("Data berhasil diunggah!")
     
-    # Tampilkan preview data asli
-    with st.expander("Lihat Preview Data Emas"):
-        st.dataframe(emas.head(10), use_container_width=True)
-
-    # ==========================================================================
-    # KODE MODEL 1: GRU-ADAM FUNCTION (CACHE DATA)
-    # ==========================================================================
-    @st.cache_data
-    def jalankan_training_adam(_df_emas):
-        clear_session()
-        reset_seeds()
-        
-        feature_cols = ["Terakhir"]
-        target_col   = "Terakhir"
-        data_features = _df_emas[feature_cols].values
-        data_target = _df_emas[[target_col]].values
-
-        n = len(data_features)
-        n_train = int(n * 0.8)
-
-        scaler_X = MinMaxScaler().fit(data_features[:n_train])
-        scaler_y = MinMaxScaler().fit(data_target[:n_train])
-        Xs = scaler_X.transform(data_features)
-        ys = scaler_y.transform(data_target)
-
-        window = 1
-        def make_sequences(X_scaled, y_scaled, window):
-            X_seq, y_seq = [], []
-            for i in range(window, len(X_scaled)):
-                X_seq.append(X_scaled[i-window:i])
-                y_seq.append(y_scaled[i])
-            return np.array(X_seq), np.array(y_seq)
-            
-        X_seq_all, y_seq_all = make_sequences(Xs, ys, window=window)
-        dtrain_end = n_train - window
-
-        X_train = X_seq_all[:dtrain_end]
-        y_train = y_seq_all[:dtrain_end]
-        X_test  = X_seq_all[dtrain_end:]
-        y_test  = y_seq_all[dtrain_end:]
-
-        X_train = X_train.reshape((X_train.shape[0], X_train.shape[1], 1))
-        X_test  = X_test.reshape((X_test.shape[0], X_test.shape[1], 1))
-        
-        GS_epoch = 50
-        GS_batch = 32
-        GS_units = 16
-        GS_layers = 1
-        GS_dropout = 0.0
-        GS_LR = 0.001
-        
-        def build_gru_model(units, layers, dropout, lr, window):
-            model = Sequential()
-            model.add(Input(shape=(window, 1)))
-            model.add(GRU(units=units, activation='tanh', recurrent_activation='sigmoid', reset_after=True))
-            model.add(Dropout(dropout))
-            model.add(Dense(units=1, activation='linear'))
-            model.compile(optimizer=Adam(learning_rate=lr), loss='mse')
-            return model
-
-        reset_seeds()
-        gru_standar = build_gru_model(GS_units, GS_layers, GS_dropout, GS_LR, window)
-        early_stop = EarlyStopping(monitor='val_loss', patience=7, restore_best_weights=True)
-        
-        history = gru_standar.fit(
-            X_train, y_train,
-            epochs=GS_epoch,
-            batch_size=GS_batch,
-            callbacks=[early_stop],
-            validation_split=0.2,
-            verbose=0
-        )
-
-        nama_file_model = 'Best Model STD (TW) Timestep -- 1.h5'
-        if os.path.exists(nama_file_model):
-            try:
-                gru_standar.load_weights(nama_file_model)
-            except Exception as e:
-                pass
-        else:
-            st.warning(f"File '{nama_file_model}' tidak ditemukan. Menggunakan hasil riil training lokal.")
-
-        y_pred_scaled = gru_standar.predict(X_test, verbose=0)
-        y_pred_inv = scaler_y.inverse_transform(y_pred_scaled).flatten()
-        y_test_inv = scaler_y.inverse_transform(y_test.reshape(-1, 1)).flatten()
-        
-        rmse = np.sqrt(mean_squared_error(y_test_inv, y_pred_inv))
-        mae  = mean_absolute_error(y_test_inv, y_pred_inv)
-        mape = mean_absolute_percentage_error(y_test_inv, y_pred_inv) * 100
-        
-        return GS_units, GS_LR, GS_batch, rmse, mae, mape, y_test_inv.tolist(), y_pred_inv.tolist()
-
-
-    # ==========================================================================
-    # KODE MODEL 2: GRU-PSO FUNCTION (CACHE RESOURCE UNTUK PROSES BERAT)
-    # ==========================================================================
+    # ==========================================
+    # 2. PROSES PEMODELAN DIKUNCI DI DALAM CACHE
+    # ==========================================
     @st.cache_resource
     def jalankan_pemodelan_pso_gru(_df_emas):
+        # Reset seed tepat sebelum pemrosesan data dimulai
         reset_seeds()
         
+        # Penyiapan fitur
         feature_cols = ["Terakhir"]
         target_col   = "Terakhir"
         data_features = _df_emas[feature_cols].values
         data_target = _df_emas[[target_col]].values
 
-        n = len(data_features)
+        # Split Data Training dan Testing (80:20)
+        values = _df_emas[['Terakhir']].values
+        n = len(values)
         n_train = int(n * 0.8)
         
+        # Data Scaling
         scaler_X = MinMaxScaler().fit(data_features[:n_train])
         scaler_y = MinMaxScaler().fit(data_target[:n_train])
         Xs = scaler_X.transform(data_features)
         ys = scaler_y.transform(data_target)
 
-        window = 1
+        # Fungsi Windowing
         def make_sequences(X_scaled, y_scaled, window):
             X_seq, y_seq = [], []
             for i in range(window, len(X_scaled)):
@@ -184,17 +79,22 @@ if uploaded_file is not None:
                 y_seq.append(y_scaled[i])
             return np.array(X_seq), np.array(y_seq)
     
+        # Windowing Data
+        window = 1
         X_seq_all, y_seq_all = make_sequences(Xs, ys, window)
         
+        # Split train-test
         dtrain_end = n_train - window
         X_train = X_seq_all[:dtrain_end]
         y_train = y_seq_all[:dtrain_end]
         X_test = X_seq_all[dtrain_end:]
         y_test = y_seq_all[dtrain_end:]
         
+        # Reshape untuk input GRU
         X_train = X_train.reshape((X_train.shape[0], X_train.shape[1], 1))
         X_test  = X_test.reshape((X_test.shape[0], X_test.shape[1], 1))
         
+        # Split manual 80:20 untuk Train & Validation Internal PSO
         val_PSOSL = 0.2
         n_tr_samples_PSOSL = X_train.shape[0]
         n_tr_val_PSOSL = int(n_tr_samples_PSOSL * (1 - val_PSOSL))
@@ -204,6 +104,7 @@ if uploaded_file is not None:
         X_val_PSOSL = X_train[n_tr_val_PSOSL:]
         y_val_PSOSL = y_train[n_tr_val_PSOSL:]
 
+        # Fungsi Fitness PSO
         def make_pso_obj(X_tr, y_tr, X_va, y_va, scaler_y):
             def obj_fn(particles):
                 n_particles = particles.shape[0]
@@ -214,9 +115,11 @@ if uploaded_file is not None:
                     batch = int(np.round(p[2]))
                     dropout = float(p[3])
                     try:
+                        # PENTING: Kunci seed internal TensorFlow di setiap partikel
                         tf.random.set_seed(49)
                         clear_session()
                         
+                        # Arsitektur GRU
                         model = Sequential([
                             Input(shape=(X_tr.shape[1], X_tr.shape[2])),
                             GRU(units=units, activation='tanh'),
@@ -239,7 +142,7 @@ if uploaded_file is not None:
             
         pso_obj_PSOSL = make_pso_obj(X_tr_PSOSL, y_tr_PSOSL, X_val_PSOSL, y_val_PSOSL, scaler_y)
 
-        # Parameter Iterasi & Partikel PSO dikunci aman untuk Localhost
+        # Konfigurasi & Inisialisasi PSO
         PSOSL_iters = 5
         optimizer = GlobalBestPSO(
             n_particles=18, dimensions=4,
@@ -254,6 +157,7 @@ if uploaded_file is not None:
         history_gbest_cost_PSOSL = []
         history_gbest_pos_PSOSL = []
         
+        # Loop PSO Utama
         for it in range(PSOSL_iters):
             costs_PSOSL = pso_obj_PSOSL(optimizer.swarm.position)
             
@@ -268,6 +172,7 @@ if uploaded_file is not None:
             history_gbest_cost_PSOSL.append(float(optimizer.swarm.best_cost_PSOSL))
             history_gbest_pos_PSOSL.append(optimizer.swarm.best_pos_PSOSL.copy())
             
+            # Update acak disinkronkan dengan Colab
             r1 = np.random.rand(*optimizer.swarm.position.shape)
             r2 = np.random.rand(*optimizer.swarm.position.shape)
             optimizer.swarm.velocity = (
@@ -278,13 +183,16 @@ if uploaded_file is not None:
             optimizer.swarm.position += optimizer.swarm.velocity
             optimizer.swarm.position = np.clip(optimizer.swarm.position, np.array([16, 0.0001, 16, 0.01]), np.array([128, 0.01, 128, 0.5]))
 
+        # Ambil Hyperparameter Terbaik
         best_pos_PSOSL = history_gbest_pos_PSOSL[-1]
         best_units_PSOSL = int(np.round(best_pos_PSOSL[0]))
         best_lr_PSOSL = float(best_pos_PSOSL[1])
         best_batch_PSOSL = int(np.round(best_pos_PSOSL[2]))
         best_dropout_PSOSL = float(best_pos_PSOSL[3])
 
-        # Retraining Model Final GRU-PSO
+        # ========================================================
+        # RETRAINING MODEL FINAL (SAMA DENGAN COLAB)
+        # ========================================================
         tf.random.set_seed(49)
         GRU_PSOSL = Sequential([
             Input(shape=(X_train.shape[1], X_train.shape[2])),
@@ -294,18 +202,16 @@ if uploaded_file is not None:
         ])
         GRU_PSOSL.compile(optimizer=Adam(learning_rate=best_lr_PSOSL), loss='mse')
         
-        # Tambahan Early Stopping untuk Model PSO
-        early_stop_pso = EarlyStopping(monitor='val_loss', patience=7, restore_best_weights=True)
-        
-        GRU_PSOSL.fit(
+        # PERBAIKAN: Parameter shuffle=False dihapus agar default (shuffle=True) sesuai Colab
+        history_final = GRU_PSOSL.fit(
             X_train, y_train, 
             epochs=50, 
             batch_size=best_batch_PSOSL, 
-            callbacks=[early_stop_pso],
             validation_split=0.2, 
-            verbose=0
+            verbose=1
         )
         
+        # Evaluasi Akhir Test
         y_pred_PSOSL = GRU_PSOSL.predict(X_test, verbose=0)
         y_pred_orig_PSOSL = scaler_y.inverse_transform(y_pred_PSOSL).flatten()
         y_test_orig_PSOSL = scaler_y.inverse_transform(y_test.reshape(-1, 1)).flatten()
@@ -315,108 +221,47 @@ if uploaded_file is not None:
         mape_PSOSL = mean_absolute_percentage_error(y_test_orig_PSOSL, y_pred_orig_PSOSL) * 100
 
         return (
-            best_units_PSOSL, best_lr_PSOSL, best_batch_PSOSL, best_dropout_PSOSL,
-            rmse_PSOSL, mae_PSOSL, mape_PSOSL, y_test_orig_PSOSL.tolist(), y_pred_orig_PSOSL.tolist()
+            best_units_PSOSL,
+            best_lr_PSOSL,
+            best_batch_PSOSL,
+            best_dropout_PSOSL,
+            rmse_PSOSL,
+            mae_PSOSL,
+            mape_PSOSL,
+            y_test_orig_PSOSL,
+            y_pred_orig_PSOSL
         )
 
-    # ==========================================================================
-    # INTERFACE WEB: TOMBOL EKSEKUSI MODEL
-    # ==========================================================================
-    st.write("---")
-    left_col, right_col = st.columns(2)
-    
-    # Inisialisasi session state untuk menampung hasil agar tidak hilang saat klik tombol lain
-    if 'adam_done' not in st.session_state:
-        st.session_state.adam_done = False
-    if 'pso_done' not in st.session_state:
-        st.session_state.pso_done = False
-
-    # --- TOMBOL KIRI: MODEL STANDAR ADAM ---
-    with left_col:
-        st.subheader("1. Model GRU - Adam")
-        st.write("Menjalankan training baseline model.")
-        if st.button("Mulai Proses Training Adam"):
-            with st.spinner("Sedang memproses GRU-Adam..."):
-                u_a, lr_a, b_a, rmse_a, mae_a, mape_a, y_true_a, y_pred_a = jalankan_training_adam(emas)
-                st.session_state.u_a = u_a
-                st.session_state.lr_a = lr_a
-                st.session_state.b_a = b_a
-                st.session_state.rmse_a = rmse_a
-                st.session_state.mae_a = mae_a
-                st.session_state.mape_a = mape_a
-                st.session_state.y_true_a = np.array(y_true_a)
-                st.session_state.y_pred_a = np.array(y_pred_a)
-                st.session_state.adam_done = True
-            st.success("Model Adam Selesai Berjalan!")
+    # Tombol pemicu eksekusi
+    if st.button("Mulai Optimasi & Prediksi (Proses Berat)"):
+        with st.spinner("Sedang menghitung GRU-PSO... Mohon tunggu."):
+            units, lr, batch, dropout, rmse, mae, mape, y_true_plot, y_pred_plot = jalankan_pemodelan_pso_gru(emas)
             
-        if st.session_state.adam_done:
-            st.metric("Units", st.session_state.u_a)
-            st.metric("Learning Rate", f"{st.session_state.lr_a:.4f}")
-            st.metric("Batch Size", st.session_state.b_a)
-            
-            st.markdown("**Metrik Evaluasi Adam:**")
-            st.dataframe(pd.DataFrame([{
-                'RMSE (Rp)': round(st.session_state.rmse_a, 2),
-                'MAE (Rp)': round(st.session_state.mae_a, 2),
-                'MAPE (%)': round(st.session_state.mape_a, 4)
-            }]), use_container_width=True)
-
-    # --- TOMBOL KANAN: MODEL OPTIMASI PSO ---
-    with right_col:
-        st.subheader("2. Model GRU - PSO")
-        st.write("Melakukan pencarian hyperparameter terbaik dengan PSO.")
-        if st.button("Mulai Optimasi & Prediksi PSO"):
-            with st.spinner("Sedang menghitung GRU-PSO... Mohon ditunggu!"):
-                u_p, lr_p, b_p, dr_p, rmse_p, mae_p, mape_p, y_true_p, y_pred_p = jalankan_pemodelan_pso_gru(emas)
-                st.session_state.u_p = u_p
-                st.session_state.lr_p = lr_p
-                st.session_state.b_p = b_p
-                st.session_state.dr_p = dr_p
-                st.session_state.rmse_p = rmse_p
-                st.session_state.mae_p = mae_p
-                st.session_state.mape_p = mape_p
-                st.session_state.y_true_p = np.array(y_true_p)
-                st.session_state.y_pred_p = np.array(y_pred_p)
-                st.session_state.pso_done = True
-            st.success("Model PSO Selesai Berjalan!")
-            
-        if st.session_state.pso_done:
-            col_p1, col_p2 = st.columns(2)
-            col_p1.metric("Optimal Units", st.session_state.u_p)
-            col_p2.metric("Optimal LR", f"{st.session_state.lr_p:.6f}")
-            col_p1.metric("Optimal Batch", st.session_state.b_p)
-            col_p2.metric("Optimal Dropout", f"{st.session_state.dr_p:.4f}")
-            
-            st.markdown("**Metrik Evaluasi PSO:**")
-            st.dataframe(pd.DataFrame([{
-                'RMSE (Rp)': round(st.session_state.rmse_p, 2),
-                'MAE (Rp)': round(st.session_state.mae_p, 2),
-                'MAPE (%)': round(st.session_state.mape_p, 4)
-            }]), use_container_width=True)
-
-    # ==========================================================================
-    # VISUALISASI PERBANDINGAN AKHIR (JIKA KEDUANYA SUDAH DIJALANKAN)
-    # ==========================================================================
-    if st.session_state.adam_done or st.session_state.pso_done:
-        st.write("---")
-        st.subheader("📈 Grafik Visualisasi Hasil Perbandingan")
+        st.success("Proses Selesai!")
         
-        fig, ax = plt.subplots(figsize=(14, 6))
+        # Tampilkan Parameter Terbaik ke Interface Web
+        st.subheader("Hyperparameter Terbaik yang Ditemukan:")
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Units", units)
+        col2.metric("Learning Rate", f"{lr:.6f}")
+        col3.metric("Batch Size", batch)
+        col4.metric("Dropout", f"{dropout:.4f}")
         
-        # Plot data aktual dari model mana saja yang tersedia
-        if st.session_state.adam_done:
-            ax.plot(st.session_state.y_true_a, label='Harga Aktual', color='black', linewidth=2)
-            ax.plot(st.session_state.y_pred_a, label='Prediksi GRU-Adam', color='darkorange', linestyle='--', linewidth=1.5)
-        elif st.session_state.pso_done:
-            ax.plot(st.session_state.y_true_p, label='Harga Aktual', color='black', linewidth=2)
-            
-        if st.session_state.pso_done:
-            ax.plot(st.session_state.y_pred_p, label='Prediksi GRU-PSO', color='crimson', linestyle='-.', linewidth=1.5)
-            
-        ax.set_title("Perbandingan Performa Model Aktual vs Prediksi", fontsize=14)
-        ax.set_xlabel("Indeks Data Testing")
-        ax.set_ylabel("Harga Emas (Rp)")
-        ax.legend(fontsize=11)
+        # Tampilkan Hasil Evaluasi Metrik
+        st.subheader("Hasil Evaluasi Data Testing:")
+        res_df = pd.DataFrame([{
+            'RMSE (Rp)': round(rmse, 2),
+            'MAE (Rp)': round(mae, 2),
+            'MAPE (%)': round(mape, 4)
+        }])
+        st.dataframe(res_df)
+
+        # Plot Hasil Prediksi ke Layar Web
+        fig, ax = plt.subplots(figsize=(12, 5))
+        ax.plot(y_true_plot, label='Harga Aktual', color='royalblue')
+        ax.plot(y_pred_plot, label='Harga Prediksi', color='crimson', linestyle='--')
+        ax.set_title("Perbandingan Harga Aktual vs Prediksi (Emas)")
+        ax.legend()
         ax.grid(True, alpha=0.3)
         
         st.pyplot(fig)
