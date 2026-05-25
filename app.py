@@ -8,7 +8,7 @@ import os
 # ==========================================
 SEED = 49
 os.environ['PYTHONHASHSEED'] = str(SEED)
-os.environ["TF_DETERMINISTIC_OPS"] = "-1"
+os.environ["TF_DETERMINISTIC_OPS"] = "1"
 os.environ["TF_CUDNN_DETERMINISTIC"] = "1"
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
@@ -43,36 +43,25 @@ st.set_page_config(page_title="Prediksi Emas GRU Hybrid", layout="wide")
 st.title("Prediksi Harga Emas dengan Arsitektur GRU")
 st.write("Aplikasi komputasi Statistika untuk membandingkan model GRU Standar (Adam) dengan GRU-PSO.")
 
-# Inisialisasi awal session state untuk data agar tidak hilang saat rerun tombol
-if 'df_emas_ready' not in st.session_state:
-    st.session_state.df_emas_ready = None
-
 # Input File dari User
 uploaded_file = st.file_uploader("Unggah File Data Emas (.csv atau .xlsx)", type=["csv", "xlsx"])
 
-# Jika ada file baru diunggah, proses data sekali saja dan kunci ke session state
 if uploaded_file is not None:
+    # Pra-pemrosesan Data (Sinkronisasi Gaya Colab)
     if uploaded_file.name.endswith('.csv'):
-        emas_raw = pd.read_csv(uploaded_file)
+        emas = pd.read_csv(uploaded_file)
     else:
-        emas_raw = pd.read_excel(uploaded_file)
+        emas = pd.read_excel(uploaded_file)
         
-    emas_raw = emas_raw[['Tanggal', 'Terakhir']]
-    emas_raw.dropna(inplace=True)
+    emas = emas[['Tanggal', 'Terakhir']]
+    emas.dropna(inplace=True)
 
-    col_tanggal = emas_raw.columns[0]
-    emas_raw[col_tanggal] = pd.to_datetime(emas_raw[col_tanggal], dayfirst=True)
+    col_tanggal = emas.columns[0]
+    emas[col_tanggal] = pd.to_datetime(emas[col_tanggal], dayfirst=True)
 
     # Urutkan data dari yang terlama ke terbaru (Lama ke Baru)
-    emas_raw = emas_raw.sort_values(by=col_tanggal).reset_index(drop=True)
-    
-    # KUNCI DATA KE SESSION STATE
-    st.session_state.df_emas_ready = emas_raw
+    emas = emas.sort_values(by=col_tanggal).reset_index(drop=True)
     st.success("Data berhasil diunggah dan disinkronkan!")
-
-# Jalankan sisa aplikasi hanya jika data di session_state sudah siap tersedia
-if st.session_state.df_emas_ready is not None:
-    emas = st.session_state.df_emas_ready
     
     # Tampilkan preview data asli
     with st.expander("Lihat Preview Data Emas"):
@@ -331,12 +320,12 @@ if st.session_state.df_emas_ready is not None:
         )
 
     # ==========================================================================
-    # INTERFACE WEB: TOMBOL EKSEKUSI MODEL (DIAMANKAN DENGAN SESSION STATE)
+    # INTERFACE WEB: TOMBOL EKSEKUSI MODEL
     # ==========================================================================
     st.write("---")
     left_col, right_col = st.columns(2)
     
-    # Inisialisasi session state hasil komputasi
+    # Inisialisasi session state untuk menampung hasil agar tidak hilang saat klik tombol lain
     if 'adam_done' not in st.session_state:
         st.session_state.adam_done = False
     if 'pso_done' not in st.session_state:
@@ -406,7 +395,7 @@ if st.session_state.df_emas_ready is not None:
             }]), use_container_width=True)
 
     # ==========================================================================
-    # VISUALISASI PERBANDINGAN AKHIR
+    # VISUALISASI PERBANDINGAN AKHIR (JIKA KEDUANYA SUDAH DIJALANKAN)
     # ==========================================================================
     if st.session_state.adam_done or st.session_state.pso_done:
         st.write("---")
@@ -414,6 +403,7 @@ if st.session_state.df_emas_ready is not None:
         
         fig, ax = plt.subplots(figsize=(14, 6))
         
+        # Plot data aktual dari model mana saja yang tersedia
         if st.session_state.adam_done:
             ax.plot(st.session_state.y_true_a, label='Harga Aktual', color='black', linewidth=2)
             ax.plot(st.session_state.y_pred_a, label='Prediksi GRU-Adam', color='darkorange', linestyle='--', linewidth=1.5)
