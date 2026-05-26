@@ -296,10 +296,17 @@ if uploaded_file is not None:
                                     units=units,
                                     activation='tanh',
                                     kernel_initializer=tf.keras.initializers.GlorotUniform(seed=49),
-                                    recurrent_initializer=tf.keras.initializers.Orthogonal(seed=49)
+                                    recurrent_initializer=tf.keras.initializers.Orthogonal(seed=49),
+                                    bias_initializer=tf.keras.initializers.Zeros()
                                 ),
+                            
                                 Dropout(dropout, seed=49),
-                                Dense
+                            
+                                Dense(
+                                    1,
+                                    kernel_initializer=tf.keras.initializers.GlorotUniform(seed=49),
+                                    bias_initializer=tf.keras.initializers.Zeros()
+                                )
                             ])
 
                             model.compile(
@@ -480,12 +487,22 @@ if uploaded_file is not None:
 
             GRU_PSOSL = Sequential([
                 Input(shape=(X_train.shape[1], X_train.shape[2])),
+            
                 GRU(
                     units=best_units_PSOSL,
-                    activation='tanh'
+                    activation='tanh',
+                    kernel_initializer=tf.keras.initializers.GlorotUniform(seed=49),
+                    recurrent_initializer=tf.keras.initializers.Orthogonal(seed=49),
+                    bias_initializer=tf.keras.initializers.Zeros()
                 ),
-                Dropout(best_dropout_PSOSL),
-                Dense
+            
+                Dropout(best_dropout_PSOSL, seed=49),
+            
+                Dense(
+                    1,
+                    kernel_initializer=tf.keras.initializers.GlorotUniform(seed=49),
+                    bias_initializer=tf.keras.initializers.Zeros()
+                )
             ])
 
             GRU_PSOSL.compile(
