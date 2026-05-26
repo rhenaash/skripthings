@@ -7,9 +7,6 @@ import os
 # 1. LOCK SEED GLOBAL (AGAR DETERMINISTIK)
 # ==========================================
 SEED = 49
-tf.keras.utils.set_random_seed(SEED)
-tf.config.experimental.enable_op_determinism()
-
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -28,8 +25,6 @@ def reset_seeds(seed=SEED):
     random.seed(seed)
     np.random.seed(seed)
     tf.random.set_seed(seed)
-    tf.keras.utils.set_random_seed(seed)
-    tf.config.experimental.enable_op_determinism()
 
 # Layout Judul Aplikasi
 st.set_page_config(page_title="Prediksi Emas GRU Hybrid", layout="wide")
