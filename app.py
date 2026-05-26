@@ -479,7 +479,7 @@ if uploaded_file is not None:
             GRU_PSOSL = Sequential([
                 Input(shape=(X_train.shape[1], X_train.shape[2])),
                 GRU(
-                    units=units,
+                    units=best_units_PSOSL,
                     activation='tanh',
                     kernel_initializer=tf.keras.initializers.GlorotUniform(seed=49),
                     recurrent_initializer=tf.keras.initializers.Orthogonal(seed=49),
