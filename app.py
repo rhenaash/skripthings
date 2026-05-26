@@ -276,6 +276,8 @@ if uploaded_file is not None:
                         dropout = float(p[3])
 
                         try:
+                            random.seed(49)
+                            np.random.seed(49)
                             tf.random.set_seed(49)
                             clear_session()
 
@@ -356,6 +358,7 @@ if uploaded_file is not None:
             # =====================================================
             # LOOP PSO
             # =====================================================
+            np.random.seed(49)
             for it in range(PSOSL_iters):
 
                 costs_PSOSL = pso_obj_PSOSL(optimizer.swarm.position)
