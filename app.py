@@ -5,9 +5,33 @@ import warnings
 
 warnings.filterwarnings('ignore')
 
+import os
+import random
 import numpy as np
-import pandas as pd
-import streamlit as st
+import tensorflow as tf
+
+# ==========================================
+# PENGUNCIAN SEED UNTUK REPRODUKSIBILITAS
+# ==========================================
+SEED_VALUE = 49
+
+# 1. Kunci environment OS dan Python built-in
+os.environ['PYTHONHASHSEED'] = str(SEED_VALUE)
+os.environ['TF_DETERMINISTIC_OPS'] = '1'
+
+# 2. Kunci random generator untuk Python, NumPy, dan TensorFlow
+random.seed(SEED_VALUE)
+np.random.seed(SEED_VALUE)
+tf.random.set_seed(SEED_VALUE)
+
+# 3. Kunci konfigurasi thread TensorFlow agar eksekusi matematis berurutan
+session_conf = tf.compat.v1.ConfigProto(
+    intra_op_parallelism_threads=1, 
+    inter_op_parallelism_threads=1
+)
+sess = tf.compat.v1.Session(graph=tf.compat.v1.get_default_graph(), config=session_conf)
+tf.compat.v1.keras.backend.set_session(sess)
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 import missingno as msno
@@ -36,14 +60,6 @@ st.set_page_config(
 )
 
 st.title("GRU-PSO Forecasting Harga Emas")
-
-# =====================================================
-# SET SEED
-# =====================================================
-SEED = 49
-random.seed(SEED)
-np.random.seed(SEED)
-tf.random.set_seed(SEED)
 
 # =====================================================
 # SIDEBAR
