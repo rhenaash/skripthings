@@ -5,17 +5,24 @@ import numpy as np
 import pandas as pd
 
 # ==========================================================================
-# 1. KUNCI SEED BASELINE (KONFIGURASI STANDAR SEPERTI DI GOOGLE COLAB)
+# 1. SET SEED GLOBAL & ATUR DETERMINISME SISTEM (WAJIB DI PALING ATAS)
 # ==========================================================================
 SEED = 49
 os.environ['PYTHONHASHSEED'] = str(SEED)
+os.environ['TF_DETERMINISTIC_OPS'] = '1'
+os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Paksa pakai CPU agar sama dengan runtime CPU Colab
 
 import tensorflow as tf
-# Mengunci seed dasar global TensorFlow & Numpy tanpa mematikan multi-threading CPU
+# Atur konfigurasi thread CPU agar tidak terjadi paralelisme acak di server
+tf.config.threading.set_inter_op_parallelism_threads(1)
+tf.config.threading.set_intra_op_parallelism_threads(1)
+
+# Set seed global TensorFlow & Numpy
 tf.keras.utils.set_random_seed(SEED)
+tf.config.experimental.enable_op_determinism()
 
 import matplotlib.pyplot as plt
-import seaborn as sns
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
 from keras.models import Sequential
@@ -26,8 +33,8 @@ from keras.backend import clear_session
 import gc
 from pyswarms.single import GlobalBestPSO
 
-# Fungsi reset seed standar untuk menyegarkan memori Keras sebelum model dibentuk
-def reset_seeds(seed=SEED):
+# Fungsi pengendali reset memory & seed internal
+def reset_seeds_internal(seed=SEED):
     clear_session()
     os.environ['PYTHONHASHSEED'] = str(seed)
     random.seed(seed)
@@ -38,14 +45,14 @@ def reset_seeds(seed=SEED):
 
 # Layout Judul Aplikasi
 st.set_page_config(page_title="Prediksi Emas GRU Hybrid", layout="wide")
-st.title("Prediksi Harga Emas dengan Arsitektur GRU Standar Colab")
-st.write("Aplikasi komputasi Statistika untuk membandingkan model GRU Standar (Adam) dengan GRU-PSO.")
+st.title("Prediksi Harga Emas dengan Arsitektur GRU (Sinkronisasi Colab)")
+st.write("Aplikasi komputasi Statistika untuk membandingkan model GRU Standar (Adam) dengan GRU-PSO secara deterministik.")
 
 # Input File dari User
 uploaded_file = st.file_uploader("Unggah File Data Emas (.csv atau .xlsx)", type=["csv", "xlsx"])
 
 if uploaded_file is not None:
-    # Pra-pemrosesan Data
+    # Pra-pemrosesan Data (Sinkronisasi Gaya Colab)
     if uploaded_file.name.endswith('.csv'):
         emas = pd.read_csv(uploaded_file)
     else:
@@ -57,50 +64,51 @@ if uploaded_file is not None:
     col_tanggal = emas.columns[0]
     emas[col_tanggal] = pd.to_datetime(emas[col_tanggal], dayfirst=True)
 
-    # Urutkan data dari yang terlama ke terbaru
+    # Urutkan data dari yang terlama ke terbaru (Lama ke Baru)
     emas = emas.sort_values(by=col_tanggal).reset_index(drop=True)
     st.success("Data berhasil diunggah dan disinkronkan!")
     
     with st.expander("Lihat Preview Data Emas"):
         st.dataframe(emas.head(10), use_container_width=True)
 
-    # ==========================================================================
-    # KODE MODEL 1: GRU-ADAM 
-    # ==========================================================================
-    def jalankan_training_adam(_df_emas):
-        reset_seeds() 
+    # Mempersiapkan deret waktu (Time Series Sequences) untuk training
+    feature_cols = ["Terakhir"]
+    target_col   = "Terakhir"
+    data_features = emas[feature_cols].values
+    data_target = emas[[target_col]].values
+
+    n = len(data_features)
+    n_train = int(n * 0.8)
+
+    scaler_X = MinMaxScaler().fit(data_features[:n_train])
+    scaler_y = MinMaxScaler().fit(data_target[:n_train])
+    Xs = scaler_X.transform(data_features)
+    ys = scaler_y.transform(data_target)
+
+    window = 1
+    def make_sequences(X_scaled, y_scaled, window):
+        X_seq, y_seq = [], []
+        for i in range(window, len(X_scaled)):
+            X_seq.append(X_scaled[i-window:i])
+            y_seq.append(y_scaled[i])
+        return np.array(X_seq), np.array(y_seq)
         
-        feature_cols = ["Terakhir"]
-        target_col   = "Terakhir"
-        data_features = _df_emas[feature_cols].values
-        data_target = _df_emas[[target_col]].values
+    X_seq_all, y_seq_all = make_sequences(Xs, ys, window=window)
+    dtrain_end = n_train - window
 
-        n = len(data_features)
-        n_train = int(n * 0.8)
+    X_train = X_seq_all[:dtrain_end]
+    y_train = y_seq_all[:dtrain_end]
+    X_test  = X_seq_all[dtrain_end:]
+    y_test  = y_seq_all[dtrain_end:]
 
-        scaler_X = MinMaxScaler().fit(data_features[:n_train])
-        scaler_y = MinMaxScaler().fit(data_target[:n_train])
-        Xs = scaler_X.transform(data_features)
-        ys = scaler_y.transform(data_target)
+    X_train = X_train.reshape((X_train.shape[0], X_train.shape[1], 1))
+    X_test  = X_test.reshape((X_test.shape[0], X_test.shape[1], 1))
 
-        window = 1
-        def make_sequences(X_scaled, y_scaled, window):
-            X_seq, y_seq = [], []
-            for i in range(window, len(X_scaled)):
-                X_seq.append(X_scaled[i-window:i])
-                y_seq.append(y_scaled[i])
-            return np.array(X_seq), np.array(y_seq)
-            
-        X_seq_all, y_seq_all = make_sequences(Xs, ys, window=window)
-        dtrain_end = n_train - window
-
-        X_train = X_seq_all[:dtrain_end]
-        y_train = y_seq_all[:dtrain_end]
-        X_test  = X_seq_all[dtrain_end:]
-        y_test  = y_seq_all[dtrain_end:]
-
-        X_train = X_train.reshape((X_train.shape[0], X_train.shape[1], 1))
-        X_test  = X_test.reshape((X_test.shape[0], X_test.shape[1], 1))
+    # ==========================================================================
+    # KODE MODEL 1: TRAINING GRU-ADAM STANDAR
+    # ==========================================================================
+    def jalankan_training_adam():
+        reset_seeds_internal(SEED)
         
         GS_epoch = 50
         GS_batch = 32
@@ -109,19 +117,16 @@ if uploaded_file is not None:
         GS_dropout = 0.0
         GS_LR = 0.001
         
-        def build_gru_model(units, layers, dropout, lr, window):
-            model = Sequential()
-            model.add(Input(shape=(window, 1)))
-            model.add(GRU(units=units, activation='tanh', recurrent_activation='sigmoid', reset_after=True))
-            model.add(Dropout(dropout))
-            model.add(Dense(units=1, activation='linear'))
-            model.compile(optimizer=Adam(learning_rate=lr), loss='mse')
-            return model
-
-        gru_standar = build_gru_model(GS_units, GS_layers, GS_dropout, GS_LR, window)
+        model = Sequential()
+        model.add(Input(shape=(window, 1)))
+        model.add(GRU(units=GS_units, activation='tanh', recurrent_activation='sigmoid', reset_after=True))
+        model.add(Dropout(GS_dropout))
+        model.add(Dense(units=1, activation='linear'))
+        model.compile(optimizer=Adam(learning_rate=GS_LR), loss='mse')
+        
         early_stop = EarlyStopping(monitor='val_loss', patience=7, restore_best_weights=True)
         
-        history = gru_standar.fit(
+        model.fit(
             X_train, y_train,
             epochs=GS_epoch,
             batch_size=GS_batch,
@@ -130,16 +135,7 @@ if uploaded_file is not None:
             verbose=0
         )
 
-        nama_file_model = 'Best Model STD (TW) Timestep -- 1.h5'
-        if os.path.exists(nama_file_model):
-            try:
-                gru_standar.load_weights(nama_file_model)
-            except Exception as e:
-                pass
-        else:
-            st.warning(f"File '{nama_file_model}' tidak ditemukan. Menggunakan hasil riil training lokal.")
-
-        y_pred_scaled = gru_standar.predict(X_test, verbose=0)
+        y_pred_scaled = model.predict(X_test, verbose=0)
         y_pred_inv = scaler_y.inverse_transform(y_pred_scaled).flatten()
         y_test_inv = scaler_y.inverse_transform(y_test.reshape(-1, 1)).flatten()
         
@@ -149,55 +145,20 @@ if uploaded_file is not None:
         
         return GS_units, GS_LR, GS_batch, rmse, mae, mape, y_test_inv.tolist(), y_pred_inv.tolist()
 
-
     # ==========================================================================
-    # KODE MODEL 2: GRU-PSO 
+    # KODE MODEL 2: OPTIMASI HYPERPARAMETER DENGAN GRU-PSO
     # ==========================================================================
-    def jalankan_pemodelan_pso_gru(_df_emas):
-        reset_seeds() 
-        
-        feature_cols = ["Terakhir"]
-        target_col   = "Terakhir"
-        data_features = _df_emas[feature_cols].values
-        data_target = _df_emas[[target_col]].values
-
-        n = len(data_features)
-        n_train = int(n * 0.8)
-        
-        scaler_X = MinMaxScaler().fit(data_features[:n_train])
-        scaler_y = MinMaxScaler().fit(data_target[:n_train])
-        Xs = scaler_X.transform(data_features)
-        ys = scaler_y.transform(data_target)
-
-        window = 1
-        def make_sequences(X_scaled, y_scaled, window):
-            X_seq, y_seq = [], []
-            for i in range(window, len(X_scaled)):
-                X_seq.append(X_scaled[i-window:i])
-                y_seq.append(y_scaled[i])
-            return np.array(X_seq), np.array(y_seq)
-    
-        X_seq_all, y_seq_all = make_sequences(Xs, ys, window)
-        
-        dtrain_end = n_train - window
-        X_train = X_seq_all[:dtrain_end]
-        y_train = y_seq_all[:dtrain_end]
-        X_test = X_seq_all[dtrain_end:]
-        y_test = y_seq_all[dtrain_end:]
-        
-        X_train = X_train.reshape((X_train.shape[0], X_train.shape[1], 1))
-        X_test  = X_test.reshape((X_test.shape[0], X_test.shape[1], 1))
-        
+    def jalankan_pemodelan_pso_gru():
+        # Persiapan data internal untuk fitness function PSO
         val_PSOSL = 0.2
         n_tr_samples_PSOSL = X_train.shape[0]
         n_tr_val_PSOSL = int(n_tr_samples_PSOSL * (1 - val_PSOSL))
-        
         X_tr_PSOSL = X_train[:n_tr_val_PSOSL]
         y_tr_PSOSL = y_train[:n_tr_val_PSOSL]
         X_val_PSOSL = X_train[n_tr_val_PSOSL:]
         y_val_PSOSL = y_train[n_tr_val_PSOSL:]
 
-        def make_pso_obj(X_tr, y_tr, X_va, y_va, scaler_y):
+        def make_pso_obj(X_tr, y_tr, X_va, y_va, scaler_y_obj):
             def obj_fn(particles):
                 n_particles = particles.shape[0]
                 costs = np.zeros(n_particles)
@@ -207,9 +168,8 @@ if uploaded_file is not None:
                     batch = int(np.round(p[2]))
                     dropout = float(p[3])
                     try:
-                        tf.keras.utils.set_random_seed(SEED)
-                        clear_session()
-                        
+                        reset_seeds_internal(SEED)
+
                         model = Sequential([
                             Input(shape=(X_tr.shape[1], X_tr.shape[2])),
                             GRU(units=units, activation='tanh', recurrent_activation='sigmoid', reset_after=True),
@@ -220,8 +180,8 @@ if uploaded_file is not None:
                         model.fit(X_tr, y_tr, epochs=10, batch_size=batch, verbose=0)
             
                         yv_pred = model.predict(X_va, verbose=0)
-                        yv_pred_orig_PSOSL = scaler_y.inverse_transform(yv_pred).flatten()
-                        yv_true_orig_PSOSL = scaler_y.inverse_transform(y_va.reshape(-1, 1)).flatten()
+                        yv_pred_orig_PSOSL = scaler_y_obj.inverse_transform(yv_pred).flatten()
+                        yv_true_orig_PSOSL = scaler_y_obj.inverse_transform(y_va.reshape(-1, 1)).flatten()
                         costs[i] = mean_squared_error(yv_true_orig_PSOSL, yv_pred_orig_PSOSL)
                     except Exception as e:
                         costs[i] = 1e12
@@ -232,25 +192,27 @@ if uploaded_file is not None:
             
         pso_obj_PSOSL = make_pso_obj(X_tr_PSOSL, y_tr_PSOSL, X_val_PSOSL, y_val_PSOSL, scaler_y)
 
+        PSOSL_particles = 28
         PSOSL_iters = 5
+        PSOSL_options = {'c1': 2.0, 'c2': 2.0, 'w': 0.7}
+        PSOSL_bounds = ([16, 0.0001, 16, 0.01], [128, 0.01, 128, 0.5])
         
         np.random.seed(SEED)
         optimizer = GlobalBestPSO(
-            n_particles=20, dimensions=4,
-            options={'c1': 2.0, 'c2': 2.0, 'w': 0.7},
-            bounds=([16, 0.0001, 16, 0.01], [128, 0.01, 128, 0.5])
+            n_particles=PSOSL_particles, dimensions=4,
+            options=PSOSL_options, bounds=PSOSL_bounds
         )
         
         n_particles, dims = optimizer.swarm.position.shape
         optimizer.swarm.pbest_pos_PSOSL = optimizer.swarm.position.copy()
         optimizer.swarm.pbest_cost_PSOSL = np.full(n_particles, np.inf)
         
-        history_positions_PSOSL = []
-        history_velocity_PSOSL = []
-        history_costs_PSOSL = []
-        history_gbest_cost_PSOSL = []
         history_gbest_pos_PSOSL = []
         
+        # UI Streamlit untuk memantau progress iterasi PSO secara real-time seperti print log Colab
+        pso_progress_box = st.empty()
+        pso_log_text = "### 🔄 Log Optimasi Partikel PSO:\n"
+
         for it in range(PSOSL_iters):
             costs_PSOSL = pso_obj_PSOSL(optimizer.swarm.position)
             
@@ -262,22 +224,28 @@ if uploaded_file is not None:
             optimizer.swarm.best_cost_PSOSL = optimizer.swarm.pbest_cost_PSOSL[best_PSOSL]
             optimizer.swarm.best_pos_PSOSL = optimizer.swarm.pbest_pos_PSOSL[best_PSOSL].copy()
 
-            history_positions_PSOSL.append(optimizer.swarm.position.copy())
-            history_velocity_PSOSL.append(optimizer.swarm.velocity.copy())
-            history_costs_PSOSL.append(costs_PSOSL.copy())
-            history_gbest_cost_PSOSL.append(float(optimizer.swarm.best_cost_PSOSL))
             history_gbest_pos_PSOSL.append(optimizer.swarm.best_pos_PSOSL.copy())
             
+            # Tampilkan informasi iterasi ke UI web
+            pso_log_text += (
+                f"**ITERATION {it+1}** ➔ Global Best Loss: `{optimizer.swarm.best_cost_PSOSL:.6f}` | "
+                f"Best Params: units=`{int(np.round(optimizer.swarm.best_pos_PSOSL[0]))}`, "
+                f"lr=`{optimizer.swarm.best_pos_PSOSL[1]:.6f}`, batch=`{int(np.round(optimizer.swarm.best_pos_PSOSL[2]))}`\n\n"
+            )
+            pso_progress_box.markdown(pso_log_text)
+            
+            # Sinkronisasi urutan pergeseran random velocity seperti di loop Colab
             np.random.seed(SEED + it) 
             r1 = np.random.rand(*optimizer.swarm.position.shape)
             r2 = np.random.rand(*optimizer.swarm.position.shape)
             optimizer.swarm.velocity = (
-                0.7 * optimizer.swarm.velocity
-                + 2.0 * r1 * (optimizer.swarm.pbest_pos_PSOSL - optimizer.swarm.position)
-                + 2.0 * r2 * (optimizer.swarm.best_pos_PSOSL - optimizer.swarm.position)
+                PSOSL_options['w'] * optimizer.swarm.velocity
+                + PSOSL_options['c1'] * r1 * (optimizer.swarm.pbest_pos_PSOSL - optimizer.swarm.position)
+                + PSOSL_options['c2'] * r2 * (optimizer.swarm.best_pos_PSOSL - optimizer.swarm.position)
             )
             optimizer.swarm.position += optimizer.swarm.velocity
-            optimizer.swarm.position = np.clip(optimizer.swarm.position, np.array([16, 0.0001, 16, 0.01]), np.array([128, 0.01, 128, 0.5]))
+            lb, ub = np.array(PSOSL_bounds[0]), np.array(PSOSL_bounds[1])
+            optimizer.swarm.position = np.clip(optimizer.swarm.position, lb, ub)
 
         best_pos_PSOSL = history_gbest_pos_PSOSL[-1]
         best_units_PSOSL = int(np.round(best_pos_PSOSL[0]))
@@ -285,8 +253,9 @@ if uploaded_file is not None:
         best_batch_PSOSL = int(np.round(best_pos_PSOSL[2]))
         best_dropout_PSOSL = float(best_pos_PSOSL[3])
         
-        # Retraining Model Final GRU-PSO
-        tf.keras.utils.set_random_seed(SEED)
+        # Retraining Model Final GRU-PSO berdasarkan parameter gbest terakhir
+        reset_seeds_internal(SEED)
+        
         GRU_PSOSL = Sequential([
             Input(shape=(X_train.shape[1], X_train.shape[2])),
             GRU(units=best_units_PSOSL, activation='tanh', recurrent_activation='sigmoid', reset_after=True),
@@ -297,14 +266,14 @@ if uploaded_file is not None:
         
         early_stop_pso = EarlyStopping(monitor='val_loss', patience=7, restore_best_weights=True)
         
-        history_final_PSOSL = GRU_PSOSL.fit(
-                                    X_train, y_train, 
-                                    epochs=50, 
-                                    batch_size=best_batch_PSOSL, 
-                                    callbacks=[early_stop_pso],
-                                    validation_split=0.2, 
-                                    verbose=0
-                              )
+        GRU_PSOSL.fit(
+            X_train, y_train, 
+            epochs=50, 
+            batch_size=best_batch_PSOSL, 
+            callbacks=[early_stop_pso],
+            validation_split=0.2, 
+            verbose=0
+        )
         
         y_pred_PSOSL = GRU_PSOSL.predict(X_test, verbose=0)
         y_pred_orig_PSOSL = scaler_y.inverse_transform(y_pred_PSOSL).flatten()
@@ -336,7 +305,7 @@ if uploaded_file is not None:
         st.write("Menjalankan training baseline model.")
         if st.button("Mulai Proses Training Adam"):
             with st.spinner("Sedang memproses GRU-Adam..."):
-                u_a, lr_a, b_a, rmse_a, mae_a, mape_a, y_true_a, y_pred_a = jalankan_training_adam(emas)
+                u_a, lr_a, b_a, rmse_a, mae_a, mape_a, y_true_a, y_pred_a = jalankan_training_adam()
                 st.session_state.u_a = u_a
                 st.session_state.lr_a = lr_a
                 st.session_state.b_a = b_a
@@ -366,7 +335,7 @@ if uploaded_file is not None:
         st.write("Melakukan pencarian hyperparameter terbaik dengan PSO.")
         if st.button("Mulai Optimasi & Prediksi PSO"):
             with st.spinner("Sedang menghitung GRU-PSO... Mohon ditunggu!"):
-                u_p, lr_p, b_p, dr_p, rmse_p, mae_p, mape_p, y_true_p, y_pred_p = jalankan_pemodelan_pso_gru(emas)
+                u_p, lr_p, b_p, dr_p, rmse_p, mae_p, mape_p, y_true_p, y_pred_p = jalankan_pemodelan_pso_gru()
                 st.session_state.u_p = u_p
                 st.session_state.lr_p = lr_p
                 st.session_state.b_p = b_p
