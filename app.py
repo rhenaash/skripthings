@@ -191,8 +191,8 @@ if uploaded_file is not None:
             
         pso_obj_PSOSL = make_pso_obj(X_tr_PSOSL, y_tr_PSOSL, X_val_PSOSL, y_val_PSOSL, scaler_y)
 
-        PSOSL_particles = 20
-        PSOSL_iters = 10
+        PSOSL_particles = 18
+        PSOSL_iters = 5
         PSOSL_options = {'c1': 2.0, 'c2': 2.0, 'w': 0.7}
         PSOSL_bounds = ([16, 0.0001, 16, 0.01], [128, 0.01, 128, 0.5])
         
