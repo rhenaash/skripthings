@@ -286,7 +286,7 @@ if uploaded_file is not None:
                                     activation='tanh'
                                 ),
                                 Dropout(dropout),
-                                Dense
+                                Dense()
                             ])
 
                             model.compile(
