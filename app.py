@@ -242,7 +242,7 @@ if uploaded_file is not None:
         pso_obj_PSOSL = make_pso_obj(X_tr_PSOSL, y_tr_PSOSL, X_val_PSOSL, y_val_PSOSL, scaler_y)
 
         # Parameter Iterasi & Partikel PSO dikunci aman
-        PSOSL_iters = 5
+        PSOSL_iters = 3
         
         # Sesuai instruksi library pyswarms, seed random numpy harus dikunci tepat sebelum inisialisasi swarm
         
