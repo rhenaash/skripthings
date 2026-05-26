@@ -5,8 +5,8 @@ import warnings
 
 warnings.filterwarnings('ignore')
 
-import os
-import random
+import streamlit as st
+import pandas as pd
 import numpy as np
 import tensorflow as tf
 
@@ -15,27 +15,23 @@ import tensorflow as tf
 # ==========================================
 SEED_VALUE = 49
 
-# 1. Kunci environment OS dan Python built-in
 os.environ['PYTHONHASHSEED'] = str(SEED_VALUE)
 os.environ['TF_DETERMINISTIC_OPS'] = '1'
 
-# 2. Kunci random generator untuk Python, NumPy, dan TensorFlow
 random.seed(SEED_VALUE)
 np.random.seed(SEED_VALUE)
 tf.random.set_seed(SEED_VALUE)
 
-# 3. Kunci konfigurasi thread TensorFlow agar eksekusi matematis berurutan
-session_conf = tf.compat.v1.ConfigProto(
-    intra_op_parallelism_threads=1, 
-    inter_op_parallelism_threads=1
-)
-sess = tf.compat.v1.Session(graph=tf.compat.v1.get_default_graph(), config=session_conf)
-tf.compat.v1.keras.backend.set_session(sess)
+tf.keras.utils.set_random_seed(SEED_VALUE)
+
+tf.config.experimental.enable_op_determinism()
+
+tf.config.threading.set_inter_op_parallelism_threads(1)
+tf.config.threading.set_intra_op_parallelism_threads(1)
 
 import matplotlib.pyplot as plt
 import seaborn as sns
 import missingno as msno
-import tensorflow as tf
 
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import (
