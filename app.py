@@ -281,22 +281,12 @@ if uploaded_file is not None:
 
                             model = Sequential([
                                 Input(shape=(X_tr.shape[1], X_tr.shape[2])),
-                            
                                 GRU(
                                     units=units,
-                                    activation='tanh',
-                                    kernel_initializer=tf.keras.initializers.GlorotUniform(seed=49),
-                                    recurrent_initializer=tf.keras.initializers.Orthogonal(seed=49),
-                                    bias_initializer=tf.keras.initializers.Zeros()
+                                    activation='tanh'
                                 ),
-                            
-                                Dropout(dropout, seed=49),
-                            
-                                Dense(
-                                    1,
-                                    kernel_initializer=tf.keras.initializers.GlorotUniform(seed=49),
-                                    bias_initializer=tf.keras.initializers.Zeros()
-                                )
+                                Dropout(dropout),
+                                Dense
                             ])
 
                             model.compile(
