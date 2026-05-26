@@ -16,18 +16,12 @@ import tensorflow as tf
 SEED_VALUE = 49
 
 os.environ['PYTHONHASHSEED'] = str(SEED_VALUE)
-os.environ['TF_DETERMINISTIC_OPS'] = '1'
 
 random.seed(SEED_VALUE)
 np.random.seed(SEED_VALUE)
 tf.random.set_seed(SEED_VALUE)
 
 tf.keras.utils.set_random_seed(SEED_VALUE)
-
-tf.config.experimental.enable_op_determinism()
-
-tf.config.threading.set_inter_op_parallelism_threads(1)
-tf.config.threading.set_intra_op_parallelism_threads(1)
 
 import matplotlib.pyplot as plt
 import seaborn as sns
