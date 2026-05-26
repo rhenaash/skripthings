@@ -18,6 +18,8 @@ random.seed(SEED_VALUE)
 np.random.seed(SEED_VALUE)
 tf.random.set_seed(SEED_VALUE)
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 import missingno as msno
@@ -270,6 +272,10 @@ if uploaded_file is not None:
 
                     for i, p in enumerate(particles):
 
+                        random.seed(49)
+                        np.random.seed(49)
+                        tf.random.set_seed(49)
+                        
                         units = int(np.round(p[0]))
                         lr = float(p[1])
                         batch = int(np.round(p[2]))
@@ -283,7 +289,13 @@ if uploaded_file is not None:
 
                             model = Sequential([
                                 Input(shape=(X_tr.shape[1], X_tr.shape[2])),
-                                GRU(units=units, activation='tanh'),
+                                GRU(
+                                    units=units,
+                                    activation='tanh',
+                                    kernel_initializer=tf.keras.initializers.GlorotUniform(seed=49),
+                                    recurrent_initializer=tf.keras.initializers.Orthogonal(seed=49),
+                                    bias_initializer=tf.keras.initializers.Zeros()
+                                ),
                                 Dropout(dropout),
                                 Dense(1)
                             ])
@@ -466,7 +478,13 @@ if uploaded_file is not None:
 
             GRU_PSOSL = Sequential([
                 Input(shape=(X_train.shape[1], X_train.shape[2])),
-                GRU(units=best_units_PSOSL, activation='tanh'),
+                GRU(
+                    units=units,
+                    activation='tanh',
+                    kernel_initializer=tf.keras.initializers.GlorotUniform(seed=49),
+                    recurrent_initializer=tf.keras.initializers.Orthogonal(seed=49),
+                    bias_initializer=tf.keras.initializers.Zeros()
+                ),
                 Dropout(best_dropout_PSOSL),
                 Dense(1)
             ])
