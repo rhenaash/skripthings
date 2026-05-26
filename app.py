@@ -14,9 +14,6 @@ import tensorflow as tf
 # PENGUNCIAN SEED UNTUK REPRODUKSIBILITAS
 # ==========================================
 SEED_VALUE = 49
-
-os.environ['PYTHONHASHSEED'] = str(SEED_VALUE)
-
 random.seed(SEED_VALUE)
 np.random.seed(SEED_VALUE)
 tf.random.set_seed(SEED_VALUE)
