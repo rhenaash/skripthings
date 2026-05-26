@@ -270,18 +270,12 @@ if uploaded_file is not None:
 
                     for i, p in enumerate(particles):
 
-                        random.seed(49)
-                        np.random.seed(49)
-                        tf.random.set_seed(49)
-                        
                         units = int(np.round(p[0]))
                         lr = float(p[1])
                         batch = int(np.round(p[2]))
                         dropout = float(p[3])
 
                         try:
-                            random.seed(49)
-                            np.random.seed(49)
                             tf.random.set_seed(49)
                             clear_session()
 
