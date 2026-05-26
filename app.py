@@ -1,14 +1,27 @@
 import streamlit as st
-import tensorflow as tf
-import random
 import os
-
-# ==========================================
-# 1. LOCK SEED GLOBAL (AGAR DETERMINISTIK)
-# ==========================================
-SEED = 49
-import pandas as pd
+import random
 import numpy as np
+import pandas as pd
+
+# ==========================================================================
+# 1. KUNCI SEED SECARA AGRESIF DI LEVEL SISTEM OPERASI (WAJIB DI PALING ATAS)
+# ==========================================================================
+SEED = 49
+os.environ['PYTHONHASHSEED'] = str(SEED)
+os.environ['TF_DETERMINISTIC_OPS'] = '1'
+os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Paksa pakai CPU karena GPU bawaannya non-deterministik
+
+import tensorflow as tf
+# Atur konfigurasi thread CPU agar tidak terjadi paralelisme acak
+tf.config.threading.set_inter_op_parallelism_threads(1)
+tf.config.threading.set_intra_op_parallelism_threads(1)
+
+# Atur seed global TensorFlow & Numpy
+tf.keras.utils.set_random_seed(SEED)
+tf.config.experimental.enable_op_determinism()
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import MinMaxScaler
@@ -21,21 +34,26 @@ from keras.backend import clear_session
 import gc
 from pyswarms.single import GlobalBestPSO
 
+# Fungsi reset seed yang dipanggil tepat sebelum model dibuat
 def reset_seeds(seed=SEED):
+    clear_session()
+    os.environ['PYTHONHASHSEED'] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
     tf.random.set_seed(seed)
+    tf.keras.utils.set_random_seed(seed)
+    gc.collect()
 
 # Layout Judul Aplikasi
 st.set_page_config(page_title="Prediksi Emas GRU Hybrid", layout="wide")
-st.title("Prediksi Harga Emas dengan Arsitektur GRU")
+st.title("Prediksi Harga Emas dengan Arsitektur GRU (100% Deterministik)")
 st.write("Aplikasi komputasi Statistika untuk membandingkan model GRU Standar (Adam) dengan GRU-PSO.")
 
 # Input File dari User
 uploaded_file = st.file_uploader("Unggah File Data Emas (.csv atau .xlsx)", type=["csv", "xlsx"])
 
 if uploaded_file is not None:
-    # Pra-pemrosesan Data (Sinkronisasi Gaya Colab)
+    # Pra-pemrosesan Data
     if uploaded_file.name.endswith('.csv'):
         emas = pd.read_csv(uploaded_file)
     else:
@@ -47,21 +65,18 @@ if uploaded_file is not None:
     col_tanggal = emas.columns[0]
     emas[col_tanggal] = pd.to_datetime(emas[col_tanggal], dayfirst=True)
 
-    # Urutkan data dari yang terlama ke terbaru (Lama ke Baru)
+    # Urutkan data dari yang terlama ke terbaru
     emas = emas.sort_values(by=col_tanggal).reset_index(drop=True)
     st.success("Data berhasil diunggah dan disinkronkan!")
     
-    # Tampilkan preview data asli
     with st.expander("Lihat Preview Data Emas"):
         st.dataframe(emas.head(10), use_container_width=True)
 
     # ==========================================================================
-    # KODE MODEL 1: GRU-ADAM FUNCTION (CACHE DATA)
+    # KODE MODEL 1: GRU-ADAM (TANPA CACHE AGAR GENERATOR SEED REFRESH)
     # ==========================================================================
-    @st.cache_data
     def jalankan_training_adam(_df_emas):
-        clear_session()
-        reset_seeds()
+        reset_seeds() # Kunci ulang seed sebelum eksekusi
         
         feature_cols = ["Terakhir"]
         target_col   = "Terakhir"
@@ -111,7 +126,6 @@ if uploaded_file is not None:
             model.compile(optimizer=Adam(learning_rate=lr), loss='mse')
             return model
 
-        reset_seeds()
         gru_standar = build_gru_model(GS_units, GS_layers, GS_dropout, GS_LR, window)
         early_stop = EarlyStopping(monitor='val_loss', patience=7, restore_best_weights=True)
         
@@ -145,11 +159,10 @@ if uploaded_file is not None:
 
 
     # ==========================================================================
-    # KODE MODEL 2: GRU-PSO FUNCTION (CACHE RESOURCE UNTUK PROSES BERAT)
+    # KODE MODEL 2: GRU-PSO (TANPA CACHE AGAR GENERATOR SEED REFRESH)
     # ==========================================================================
-    @st.cache_resource
     def jalankan_pemodelan_pso_gru(_df_emas):
-        reset_seeds()
+        reset_seeds() # Kunci ulang seed sebelum eksekusi
         
         feature_cols = ["Terakhir"]
         target_col   = "Terakhir"
@@ -202,12 +215,13 @@ if uploaded_file is not None:
                     batch = int(np.round(p[2]))
                     dropout = float(p[3])
                     try:
-                        tf.random.set_seed(49)
+                        # Kunci ulang seed internal per partikel agar berurutan secara deterministik
+                        tf.keras.utils.set_random_seed(SEED)
                         clear_session()
                         
                         model = Sequential([
                             Input(shape=(X_tr.shape[1], X_tr.shape[2])),
-                            GRU(units=units, activation='tanh'),
+                            GRU(units=units, activation='tanh', recurrent_activation='sigmoid', reset_after=True),
                             Dropout(dropout),
                             Dense(1)
                         ])
@@ -227,8 +241,11 @@ if uploaded_file is not None:
             
         pso_obj_PSOSL = make_pso_obj(X_tr_PSOSL, y_tr_PSOSL, X_val_PSOSL, y_val_PSOSL, scaler_y)
 
-        # Parameter Iterasi & Partikel PSO dikunci aman untuk Localhost
+        # Parameter Iterasi & Partikel PSO dikunci aman
         PSOSL_iters = 5
+        
+        # Sesuai instruksi library pyswarms, seed random numpy harus dikunci tepat sebelum inisialisasi swarm
+        np.random.seed(SEED)
         optimizer = GlobalBestPSO(
             n_particles=18, dimensions=4,
             options={'c1': 2.0, 'c2': 2.0, 'w': 0.7},
@@ -239,7 +256,6 @@ if uploaded_file is not None:
         optimizer.swarm.pbest_pos_PSOSL = optimizer.swarm.position.copy()
         optimizer.swarm.pbest_cost_PSOSL = np.full(n_particles, np.inf)
         
-        # PERBAIKAN: Inisialisasi list history yang tadinya tidak terdefinisi
         history_positions_PSOSL = []
         history_velocity_PSOSL = []
         history_costs_PSOSL = []
@@ -263,6 +279,8 @@ if uploaded_file is not None:
             history_gbest_cost_PSOSL.append(float(optimizer.swarm.best_cost_PSOSL))
             history_gbest_pos_PSOSL.append(optimizer.swarm.best_pos_PSOSL.copy())
             
+            # Kunci generator angka acak untuk pembaruan posisi partikel PSO
+            np.random.seed(SEED + it) 
             r1 = np.random.rand(*optimizer.swarm.position.shape)
             r2 = np.random.rand(*optimizer.swarm.position.shape)
             optimizer.swarm.velocity = (
@@ -274,23 +292,21 @@ if uploaded_file is not None:
             optimizer.swarm.position = np.clip(optimizer.swarm.position, np.array([16, 0.0001, 16, 0.01]), np.array([128, 0.01, 128, 0.5]))
 
         best_pos_PSOSL = history_gbest_pos_PSOSL[-1]
-        best_cost_PSOSL = history_gbest_cost_PSOSL[-1]
         best_units_PSOSL = int(np.round(best_pos_PSOSL[0]))
         best_lr_PSOSL = float(best_pos_PSOSL[1])
         best_batch_PSOSL = int(np.round(best_pos_PSOSL[2]))
         best_dropout_PSOSL = float(best_pos_PSOSL[3])
         
         # Retraining Model Final GRU-PSO
-        tf.random.set_seed(49)
+        tf.keras.utils.set_random_seed(SEED)
         GRU_PSOSL = Sequential([
             Input(shape=(X_train.shape[1], X_train.shape[2])),
-            GRU(units=best_units_PSOSL, activation='tanh'),
+            GRU(units=best_units_PSOSL, activation='tanh', recurrent_activation='sigmoid', reset_after=True),
             Dropout(best_dropout_PSOSL),
             Dense(1)
         ])
         GRU_PSOSL.compile(optimizer=Adam(learning_rate=best_lr_PSOSL), loss='mse')
         
-        # Tambahan Early Stopping untuk Model PSO
         early_stop_pso = EarlyStopping(monitor='val_loss', patience=7, restore_best_weights=True)
         
         history_final_PSOSL = GRU_PSOSL.fit(
@@ -299,21 +315,16 @@ if uploaded_file is not None:
                                     batch_size=best_batch_PSOSL, 
                                     callbacks=[early_stop_pso],
                                     validation_split=0.2, 
-                                    verbose=1
+                                    verbose=0
                               )
         
-        y_pred_PSOSL = GRU_PSOSL.predict(X_test)
+        y_pred_PSOSL = GRU_PSOSL.predict(X_test, verbose=0)
         y_pred_orig_PSOSL = scaler_y.inverse_transform(y_pred_PSOSL).flatten()
         y_test_orig_PSOSL = scaler_y.inverse_transform(y_test.reshape(-1, 1)).flatten()
         
         rmse_PSOSL = np.sqrt(mean_squared_error(y_test_orig_PSOSL, y_pred_orig_PSOSL))
         mae_PSOSL = mean_absolute_error(y_test_orig_PSOSL, y_pred_orig_PSOSL)
         mape_PSOSL = mean_absolute_percentage_error(y_test_orig_PSOSL, y_pred_orig_PSOSL) * 100
-        
-        # PERBAIKAN: Mengganti history_final menjadi history_final_PSOSL
-        train_loss_PSOSL = history_final_PSOSL.history['loss'][-1]
-        val_loss_PSOSL = history_final_PSOSL.history['val_loss'][-1]
-        epoch_PSOSL = len(history_final_PSOSL.history['loss'])
         
         return (
             best_units_PSOSL, best_lr_PSOSL, best_batch_PSOSL, best_dropout_PSOSL,
@@ -326,7 +337,6 @@ if uploaded_file is not None:
     st.write("---")
     left_col, right_col = st.columns(2)
     
-    # Inisialisasi session state agar tidak hilang saat berinteraksi
     if 'adam_done' not in st.session_state:
         st.session_state.adam_done = False
     if 'pso_done' not in st.session_state:
@@ -396,7 +406,7 @@ if uploaded_file is not None:
             }]), use_container_width=True)
 
     # ==========================================================================
-    # VISUALISASI PERBANDINGAN AKHIR (JIKA KEDUANYA/SALAH SATU SUDAH DIJALANKAN)
+    # VISUALISASI PERBANDINGAN AKHIR
     # ==========================================================================
     if st.session_state.adam_done or st.session_state.pso_done:
         st.write("---")
@@ -404,7 +414,6 @@ if uploaded_file is not None:
         
         fig, ax = plt.subplots(figsize=(14, 6))
         
-        # Plot data aktual & prediksi berdasarkan ketersediaan state
         if st.session_state.adam_done:
             ax.plot(st.session_state.y_true_a, label='Harga Aktual', color='black', linewidth=2)
             ax.plot(st.session_state.y_pred_a, label='Prediksi GRU-Adam', color='darkorange', linestyle='--', linewidth=1.5)
