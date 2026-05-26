@@ -8,9 +8,6 @@ import os
 # ==========================================
 SEED = 49
 os.environ['PYTHONHASHSEED'] = str(SEED)
-os.environ["TF_DETERMINISTIC_OPS"] = "1"
-os.environ["TF_CUDNN_DETERMINISTIC"] = "1"
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 tf.keras.utils.set_random_seed(SEED)
 tf.config.experimental.enable_op_determinism()
