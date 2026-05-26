@@ -684,3 +684,285 @@ if uploaded_file is not None:
             y_test_inv,
             y_pred_inv
         )
+
+    # ======================================================================
+    # SESSION STATE
+    # ======================================================================
+
+    if 'adam_done' not in st.session_state:
+        st.session_state.adam_done = False
+
+    if 'pso_done' not in st.session_state:
+        st.session_state.pso_done = False
+
+    # ======================================================================
+    # BUTTON INTERFACE
+    # ======================================================================
+
+    st.write("---")
+
+    left_col, right_col = st.columns(2)
+
+    # ======================================================================
+    # MODEL GRU ADAM
+    # ======================================================================
+
+    with left_col:
+
+        st.subheader("1. Model GRU - Adam")
+
+        st.write(
+            "Training baseline model GRU standar."
+        )
+
+        if st.button("Mulai Training Adam"):
+
+            with st.spinner(
+                "Sedang melatih model Adam..."
+            ):
+
+                (
+                    units_a,
+                    lr_a,
+                    batch_a,
+                    rmse_a,
+                    mae_a,
+                    mape_a,
+                    y_true_a,
+                    y_pred_a
+                ) = jalankan_training_adam()
+
+                st.session_state.units_a = units_a
+                st.session_state.lr_a = lr_a
+                st.session_state.batch_a = batch_a
+
+                st.session_state.rmse_a = rmse_a
+                st.session_state.mae_a = mae_a
+                st.session_state.mape_a = mape_a
+
+                st.session_state.y_true_a = y_true_a
+                st.session_state.y_pred_a = y_pred_a
+
+                st.session_state.adam_done = True
+
+            st.success(
+                "Training GRU-Adam selesai!"
+            )
+
+        # ==============================================================
+        # HASIL ADAM
+        # ==============================================================
+
+        if st.session_state.adam_done:
+
+            st.metric(
+                "Units",
+                st.session_state.units_a
+            )
+
+            st.metric(
+                "Learning Rate",
+                f"{st.session_state.lr_a:.6f}"
+            )
+
+            st.metric(
+                "Batch Size",
+                st.session_state.batch_a
+            )
+
+            st.markdown("### Evaluasi Adam")
+
+            st.dataframe(pd.DataFrame([{
+
+                "RMSE": round(
+                    st.session_state.rmse_a,
+                    2
+                ),
+
+                "MAE": round(
+                    st.session_state.mae_a,
+                    2
+                ),
+
+                "MAPE (%)": round(
+                    st.session_state.mape_a,
+                    4
+                )
+
+            }]))
+
+    # ======================================================================
+    # MODEL GRU PSO
+    # ======================================================================
+
+    with right_col:
+
+        st.subheader("2. Model GRU - PSO")
+
+        st.write(
+            "Optimasi hyperparameter menggunakan PSO."
+        )
+
+        if st.button("Mulai Optimasi PSO"):
+
+            with st.spinner(
+                "Sedang menjalankan GRU-PSO..."
+            ):
+
+                (
+                    units_p,
+                    lr_p,
+                    batch_p,
+                    dropout_p,
+
+                    rmse_p,
+                    mae_p,
+                    mape_p,
+
+                    y_true_p,
+                    y_pred_p
+
+                ) = jalankan_pemodelan_pso_gru()
+
+                st.session_state.units_p = units_p
+                st.session_state.lr_p = lr_p
+                st.session_state.batch_p = batch_p
+                st.session_state.dropout_p = dropout_p
+
+                st.session_state.rmse_p = rmse_p
+                st.session_state.mae_p = mae_p
+                st.session_state.mape_p = mape_p
+
+                st.session_state.y_true_p = y_true_p
+                st.session_state.y_pred_p = y_pred_p
+
+                st.session_state.pso_done = True
+
+            st.success(
+                "Optimasi GRU-PSO selesai!"
+            )
+
+        # ==============================================================
+        # HASIL PSO
+        # ==============================================================
+
+        if st.session_state.pso_done:
+
+            st.metric(
+                "Optimal Units",
+                st.session_state.units_p
+            )
+
+            st.metric(
+                "Optimal LR",
+                f"{st.session_state.lr_p:.6f}"
+            )
+
+            st.metric(
+                "Optimal Batch",
+                st.session_state.batch_p
+            )
+
+            st.metric(
+                "Optimal Dropout",
+                f"{st.session_state.dropout_p:.4f}"
+            )
+
+            st.markdown("### Evaluasi PSO")
+
+            st.dataframe(pd.DataFrame([{
+
+                "RMSE": round(
+                    st.session_state.rmse_p,
+                    2
+                ),
+
+                "MAE": round(
+                    st.session_state.mae_p,
+                    2
+                ),
+
+                "MAPE (%)": round(
+                    st.session_state.mape_p,
+                    4
+                )
+
+            }]))
+
+    # ======================================================================
+    # VISUALISASI
+    # ======================================================================
+
+    if (
+        st.session_state.adam_done
+        or
+        st.session_state.pso_done
+    ):
+
+        st.write("---")
+
+        st.subheader(
+            "Visualisasi Prediksi"
+        )
+
+        fig, ax = plt.subplots(
+            figsize=(14, 6)
+        )
+
+        # ==============================================================
+        # AKTUAL
+        # ==============================================================
+
+        if st.session_state.adam_done:
+
+            ax.plot(
+                st.session_state.y_true_a,
+                label='Aktual',
+                linewidth=2
+            )
+
+        elif st.session_state.pso_done:
+
+            ax.plot(
+                st.session_state.y_true_p,
+                label='Aktual',
+                linewidth=2
+            )
+
+        # ==============================================================
+        # ADAM
+        # ==============================================================
+
+        if st.session_state.adam_done:
+
+            ax.plot(
+                st.session_state.y_pred_a,
+                label='Prediksi GRU-Adam',
+                linestyle='--'
+            )
+
+        # ==============================================================
+        # PSO
+        # ==============================================================
+
+        if st.session_state.pso_done:
+
+            ax.plot(
+                st.session_state.y_pred_p,
+                label='Prediksi GRU-PSO',
+                linestyle='-.'
+            )
+
+        ax.set_title(
+            "Perbandingan Aktual vs Prediksi"
+        )
+
+        ax.set_xlabel("Index Data")
+
+        ax.set_ylabel("Harga Emas")
+
+        ax.legend()
+
+        ax.grid(True, alpha=0.3)
+
+        st.pyplot(fig)
