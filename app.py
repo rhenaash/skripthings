@@ -25,11 +25,11 @@ tf.config.experimental.enable_op_determinism()
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
-from keras.models import Sequential
-from keras.layers import Input, GRU, Dropout, Dense
-from keras.optimizers import Adam
-from keras.callbacks import EarlyStopping
-from keras.backend import clear_session
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Input, GRU, Dropout, Dense
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.backend import clear_session
 import gc
 from pyswarms.single import GlobalBestPSO
 
@@ -113,7 +113,6 @@ if uploaded_file is not None:
         GS_epoch = 50
         GS_batch = 32
         GS_units = 16
-        GS_layers = 1
         GS_dropout = 0.0
         GS_LR = 0.001
         
@@ -146,7 +145,7 @@ if uploaded_file is not None:
         return GS_units, GS_LR, GS_batch, rmse, mae, mape, y_test_inv.tolist(), y_pred_inv.tolist()
 
     # ==========================================================================
-    # KODE MODEL 2: OPTIMASI HYPERPARAMETER DENGAN GRU-PSO
+    # KODE MODEL 2: OPTIMASI HYPERPARAMETER DENGAN GRU-PSO (LOG PER ITERASI)
     # ==========================================================================
     def jalankan_pemodelan_pso_gru():
         # Persiapan data internal untuk fitness function PSO
@@ -192,8 +191,8 @@ if uploaded_file is not None:
             
         pso_obj_PSOSL = make_pso_obj(X_tr_PSOSL, y_tr_PSOSL, X_val_PSOSL, y_val_PSOSL, scaler_y)
 
-        PSOSL_particles = 28
-        PSOSL_iters = 5
+        PSOSL_particles = 20
+        PSOSL_iters = 10
         PSOSL_options = {'c1': 2.0, 'c2': 2.0, 'w': 0.7}
         PSOSL_bounds = ([16, 0.0001, 16, 0.01], [128, 0.01, 128, 0.5])
         
@@ -209,9 +208,10 @@ if uploaded_file is not None:
         
         history_gbest_pos_PSOSL = []
         
-        # UI Streamlit untuk memantau progress iterasi PSO secara real-time seperti print log Colab
-        pso_progress_box = st.empty()
-        pso_log_text = "### 🔄 Log Optimasi Partikel PSO:\n"
+        # --- LOG ITERASI SINKRON COLAB ---
+        st.write("### ⏱️ Progress Penjejakan Partikel Per Iterasi:")
+        pso_progress_box = st.empty()  # Tempat log teks terminal dinamis
+        pso_log_text = ""
 
         for it in range(PSOSL_iters):
             costs_PSOSL = pso_obj_PSOSL(optimizer.swarm.position)
@@ -226,15 +226,21 @@ if uploaded_file is not None:
 
             history_gbest_pos_PSOSL.append(optimizer.swarm.best_pos_PSOSL.copy())
             
-            # Tampilkan informasi iterasi ke UI web
+            # Format cetakan dibuat persis sama dengan output Colab Anda
             pso_log_text += (
-                f"**ITERATION {it+1}** ➔ Global Best Loss: `{optimizer.swarm.best_cost_PSOSL:.6f}` | "
-                f"Best Params: units=`{int(np.round(optimizer.swarm.best_pos_PSOSL[0]))}`, "
-                f"lr=`{optimizer.swarm.best_pos_PSOSL[1]:.6f}`, batch=`{int(np.round(optimizer.swarm.best_pos_PSOSL[2]))}`\n\n"
+                f"ITERATION {it+1}\n"
+                f"Global Best Loss (until now): {optimizer.swarm.best_cost_PSOSL:.6f}\n"
+                f"Best Loss in This Iteration: {np.min(costs_PSOSL):.6f}\n"
+                f"Best Parameters: units={int(np.round(optimizer.swarm.best_pos_PSOSL[0]))}, "
+                f"lr={optimizer.swarm.best_pos_PSOSL[1]:.6f}, batch={int(np.round(optimizer.swarm.best_pos_PSOSL[2]))}, "
+                f"dropout={optimizer.swarm.best_pos_PSOSL[3]:.4f}\n"
+                f"{'='*60}\n"
             )
-            pso_progress_box.markdown(pso_log_text)
             
-            # Sinkronisasi urutan pergeseran random velocity seperti di loop Colab
+            # Update tampilan box kode di Streamlit secara realtime tiap iterasi selesai
+            pso_progress_box.code(pso_log_text, language="text")
+            
+            # Sinkronisasi urutan pergeseran random velocity
             np.random.seed(SEED + it) 
             r1 = np.random.rand(*optimizer.swarm.position.shape)
             r2 = np.random.rand(*optimizer.swarm.position.shape)
