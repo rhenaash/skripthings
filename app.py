@@ -21,8 +21,6 @@ random.seed(SEED_VALUE)
 np.random.seed(SEED_VALUE)
 tf.random.set_seed(SEED_VALUE)
 
-tf.keras.utils.set_random_seed(SEED_VALUE)
-
 import matplotlib.pyplot as plt
 import seaborn as sns
 import missingno as msno
