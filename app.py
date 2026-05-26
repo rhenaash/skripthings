@@ -91,8 +91,8 @@ PSOSL_options = {
 }
 
 uploaded_file = st.file_uploader(
-    "Upload Dataset CSV",
-    type=['csv']
+    "Upload Dataset",
+    type=['csv', 'xlsx']
 )
 
 # =====================================================
@@ -100,10 +100,13 @@ uploaded_file = st.file_uploader(
 # =====================================================
 if uploaded_file is not None:
 
-    emas = pd.read_csv(uploaded_file)
+    file_extension = uploaded_file.name.split('.')[-1]
 
-    st.subheader("Preview Dataset")
-    st.dataframe(emas.head())
+    if file_extension == 'csv':
+        emas = pd.read_csv(uploaded_file)
+
+    elif file_extension == 'xlsx':
+        emas = pd.read_excel(uploaded_file)
 
     # =====================================================
     # MISSING VALUE
