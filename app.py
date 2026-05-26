@@ -60,13 +60,13 @@ window = st.sidebar.number_input(
 PSOSL_particles = st.sidebar.number_input(
     "Jumlah Partikel",
     min_value=1,
-    value=40
+    value=18
 )
 
 PSOSL_iters = st.sidebar.number_input(
     "Jumlah Iterasi",
     min_value=1,
-    value=10
+    value=5
 )
 
 c1 = st.sidebar.number_input(
