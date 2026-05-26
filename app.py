@@ -248,6 +248,10 @@ if uploaded_file is not None:
         optimizer.swarm.pbest_pos_PSOSL = optimizer.swarm.position.copy()
         optimizer.swarm.pbest_cost_PSOSL = np.full(n_particles, np.inf)
         
+        # PERBAIKAN: Inisialisasi list history yang tadinya tidak terdefinisi
+        history_positions_PSOSL = []
+        history_velocity_PSOSL = []
+        history_costs_PSOSL = []
         history_gbest_cost_PSOSL = []
         history_gbest_pos_PSOSL = []
         
@@ -261,7 +265,10 @@ if uploaded_file is not None:
             best_PSOSL = np.argmin(optimizer.swarm.pbest_cost_PSOSL)
             optimizer.swarm.best_cost_PSOSL = optimizer.swarm.pbest_cost_PSOSL[best_PSOSL]
             optimizer.swarm.best_pos_PSOSL = optimizer.swarm.pbest_pos_PSOSL[best_PSOSL].copy()
-            
+
+            history_positions_PSOSL.append(optimizer.swarm.position.copy())
+            history_velocity_PSOSL.append(optimizer.swarm.velocity.copy())
+            history_costs_PSOSL.append(costs_PSOSL.copy())
             history_gbest_cost_PSOSL.append(float(optimizer.swarm.best_cost_PSOSL))
             history_gbest_pos_PSOSL.append(optimizer.swarm.best_pos_PSOSL.copy())
             
@@ -276,11 +283,12 @@ if uploaded_file is not None:
             optimizer.swarm.position = np.clip(optimizer.swarm.position, np.array([16, 0.0001, 16, 0.01]), np.array([128, 0.01, 128, 0.5]))
 
         best_pos_PSOSL = history_gbest_pos_PSOSL[-1]
+        best_cost_PSOSL = history_gbest_cost_PSOSL[-1]
         best_units_PSOSL = int(np.round(best_pos_PSOSL[0]))
         best_lr_PSOSL = float(best_pos_PSOSL[1])
         best_batch_PSOSL = int(np.round(best_pos_PSOSL[2]))
         best_dropout_PSOSL = float(best_pos_PSOSL[3])
-
+        
         # Retraining Model Final GRU-PSO
         tf.random.set_seed(49)
         GRU_PSOSL = Sequential([
@@ -294,23 +302,28 @@ if uploaded_file is not None:
         # Tambahan Early Stopping untuk Model PSO
         early_stop_pso = EarlyStopping(monitor='val_loss', patience=7, restore_best_weights=True)
         
-        GRU_PSOSL.fit(
-            X_train, y_train, 
-            epochs=50, 
-            batch_size=best_batch_PSOSL, 
-            callbacks=[early_stop_pso],
-            validation_split=0.2, 
-            verbose=0
-        )
+        history_final_PSOSL = GRU_PSOSL.fit(
+                                    X_train, y_train, 
+                                    epochs=50, 
+                                    batch_size=best_batch_PSOSL, 
+                                    callbacks=[early_stop_pso],
+                                    validation_split=0.2, 
+                                    verbose=1
+                              )
         
-        y_pred_PSOSL = GRU_PSOSL.predict(X_test, verbose=0)
+        y_pred_PSOSL = GRU_PSOSL.predict(X_test)
         y_pred_orig_PSOSL = scaler_y.inverse_transform(y_pred_PSOSL).flatten()
         y_test_orig_PSOSL = scaler_y.inverse_transform(y_test.reshape(-1, 1)).flatten()
         
         rmse_PSOSL = np.sqrt(mean_squared_error(y_test_orig_PSOSL, y_pred_orig_PSOSL))
         mae_PSOSL = mean_absolute_error(y_test_orig_PSOSL, y_pred_orig_PSOSL)
         mape_PSOSL = mean_absolute_percentage_error(y_test_orig_PSOSL, y_pred_orig_PSOSL) * 100
-
+        
+        # PERBAIKAN: Mengganti history_final menjadi history_final_PSOSL
+        train_loss_PSOSL = history_final_PSOSL.history['loss'][-1]
+        val_loss_PSOSL = history_final_PSOSL.history['val_loss'][-1]
+        epoch_PSOSL = len(history_final_PSOSL.history['loss'])
+        
         return (
             best_units_PSOSL, best_lr_PSOSL, best_batch_PSOSL, best_dropout_PSOSL,
             rmse_PSOSL, mae_PSOSL, mape_PSOSL, y_test_orig_PSOSL.tolist(), y_pred_orig_PSOSL.tolist()
@@ -322,7 +335,7 @@ if uploaded_file is not None:
     st.write("---")
     left_col, right_col = st.columns(2)
     
-    # Inisialisasi session state untuk menampung hasil agar tidak hilang saat klik tombol lain
+    # Inisialisasi session state agar tidak hilang saat berinteraksi
     if 'adam_done' not in st.session_state:
         st.session_state.adam_done = False
     if 'pso_done' not in st.session_state:
@@ -392,7 +405,7 @@ if uploaded_file is not None:
             }]), use_container_width=True)
 
     # ==========================================================================
-    # VISUALISASI PERBANDINGAN AKHIR (JIKA KEDUANYA SUDAH DIJALANKAN)
+    # VISUALISASI PERBANDINGAN AKHIR (JIKA KEDUANYA/SALAH SATU SUDAH DIJALANKAN)
     # ==========================================================================
     if st.session_state.adam_done or st.session_state.pso_done:
         st.write("---")
@@ -400,7 +413,7 @@ if uploaded_file is not None:
         
         fig, ax = plt.subplots(figsize=(14, 6))
         
-        # Plot data aktual dari model mana saja yang tersedia
+        # Plot data aktual & prediksi berdasarkan ketersediaan state
         if st.session_state.adam_done:
             ax.plot(st.session_state.y_true_a, label='Harga Aktual', color='black', linewidth=2)
             ax.plot(st.session_state.y_pred_a, label='Prediksi GRU-Adam', color='darkorange', linestyle='--', linewidth=1.5)
