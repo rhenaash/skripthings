@@ -18,8 +18,6 @@ random.seed(SEED_VALUE)
 np.random.seed(SEED_VALUE)
 tf.random.set_seed(SEED_VALUE)
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-
 import matplotlib.pyplot as plt
 import seaborn as sns
 import missingno as msno
@@ -298,17 +296,10 @@ if uploaded_file is not None:
                                     units=units,
                                     activation='tanh',
                                     kernel_initializer=tf.keras.initializers.GlorotUniform(seed=49),
-                                    recurrent_initializer=tf.keras.initializers.Orthogonal(seed=49),
-                                    bias_initializer=tf.keras.initializers.Zeros()
+                                    recurrent_initializer=tf.keras.initializers.Orthogonal(seed=49)
                                 ),
-                            
                                 Dropout(dropout, seed=49),
-                            
-                                Dense(
-                                    1,
-                                    kernel_initializer=tf.keras.initializers.GlorotUniform(seed=49),
-                                    bias_initializer=tf.keras.initializers.Zeros()
-                                )
+                                Dense
                             ])
 
                             model.compile(
@@ -491,17 +482,10 @@ if uploaded_file is not None:
                 Input(shape=(X_train.shape[1], X_train.shape[2])),
                 GRU(
                     units=best_units_PSOSL,
-                    activation='tanh',
-                    kernel_initializer=tf.keras.initializers.GlorotUniform(seed=49),
-                    recurrent_initializer=tf.keras.initializers.Orthogonal(seed=49),
-                    bias_initializer=tf.keras.initializers.Zeros()
+                    activation='tanh'
                 ),
-                Dropout(best_dropout_PSOSL, seed=49),
-                Dense(
-                    1,
-                    kernel_initializer=tf.keras.initializers.GlorotUniform(seed=49),
-                    bias_initializer=tf.keras.initializers.Zeros()
-                )
+                Dropout(best_dropout_PSOSL),
+                Dense
             ])
 
             GRU_PSOSL.compile(
