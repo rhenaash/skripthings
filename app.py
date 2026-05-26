@@ -5,22 +5,14 @@ import numpy as np
 import pandas as pd
 
 # ==========================================================================
-# 1. KUNCI SEED SECARA AGRESIF DI LEVEL SISTEM OPERASI (WAJIB DI PALING ATAS)
+# 1. KUNCI SEED BASELINE (KONFIGURASI STANDAR SEPERTI DI GOOGLE COLAB)
 # ==========================================================================
 SEED = 49
 os.environ['PYTHONHASHSEED'] = str(SEED)
-os.environ['TF_DETERMINISTIC_OPS'] = '1'
-os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Paksa pakai CPU karena GPU bawaannya non-deterministik
 
 import tensorflow as tf
-# Atur konfigurasi thread CPU agar tidak terjadi paralelisme acak
-tf.config.threading.set_inter_op_parallelism_threads(1)
-tf.config.threading.set_intra_op_parallelism_threads(1)
-
-# Atur seed global TensorFlow & Numpy
+# Mengunci seed dasar global TensorFlow & Numpy tanpa mematikan multi-threading CPU
 tf.keras.utils.set_random_seed(SEED)
-tf.config.experimental.enable_op_determinism()
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -34,7 +26,7 @@ from keras.backend import clear_session
 import gc
 from pyswarms.single import GlobalBestPSO
 
-# Fungsi reset seed yang dipanggil tepat sebelum model dibuat
+# Fungsi reset seed standar untuk menyegarkan memori Keras sebelum model dibentuk
 def reset_seeds(seed=SEED):
     clear_session()
     os.environ['PYTHONHASHSEED'] = str(seed)
@@ -46,7 +38,7 @@ def reset_seeds(seed=SEED):
 
 # Layout Judul Aplikasi
 st.set_page_config(page_title="Prediksi Emas GRU Hybrid", layout="wide")
-st.title("Prediksi Harga Emas dengan Arsitektur GRU (100% Deterministik)")
+st.title("Prediksi Harga Emas dengan Arsitektur GRU Standar Colab")
 st.write("Aplikasi komputasi Statistika untuk membandingkan model GRU Standar (Adam) dengan GRU-PSO.")
 
 # Input File dari User
@@ -73,10 +65,10 @@ if uploaded_file is not None:
         st.dataframe(emas.head(10), use_container_width=True)
 
     # ==========================================================================
-    # KODE MODEL 1: GRU-ADAM (TANPA CACHE AGAR GENERATOR SEED REFRESH)
+    # KODE MODEL 1: GRU-ADAM 
     # ==========================================================================
     def jalankan_training_adam(_df_emas):
-        reset_seeds() # Kunci ulang seed sebelum eksekusi
+        reset_seeds() 
         
         feature_cols = ["Terakhir"]
         target_col   = "Terakhir"
@@ -159,10 +151,10 @@ if uploaded_file is not None:
 
 
     # ==========================================================================
-    # KODE MODEL 2: GRU-PSO (TANPA CACHE AGAR GENERATOR SEED REFRESH)
+    # KODE MODEL 2: GRU-PSO 
     # ==========================================================================
     def jalankan_pemodelan_pso_gru(_df_emas):
-        reset_seeds() # Kunci ulang seed sebelum eksekusi
+        reset_seeds() 
         
         feature_cols = ["Terakhir"]
         target_col   = "Terakhir"
@@ -215,7 +207,6 @@ if uploaded_file is not None:
                     batch = int(np.round(p[2]))
                     dropout = float(p[3])
                     try:
-                        # Kunci ulang seed internal per partikel agar berurutan secara deterministik
                         tf.keras.utils.set_random_seed(SEED)
                         clear_session()
                         
@@ -241,10 +232,7 @@ if uploaded_file is not None:
             
         pso_obj_PSOSL = make_pso_obj(X_tr_PSOSL, y_tr_PSOSL, X_val_PSOSL, y_val_PSOSL, scaler_y)
 
-        # Parameter Iterasi & Partikel PSO dikunci aman
-        PSOSL_iters = 3
-        
-        # Sesuai instruksi library pyswarms, seed random numpy harus dikunci tepat sebelum inisialisasi swarm
+        PSOSL_iters = 5
         
         np.random.seed(SEED)
         optimizer = GlobalBestPSO(
@@ -280,7 +268,6 @@ if uploaded_file is not None:
             history_gbest_cost_PSOSL.append(float(optimizer.swarm.best_cost_PSOSL))
             history_gbest_pos_PSOSL.append(optimizer.swarm.best_pos_PSOSL.copy())
             
-            # Kunci generator angka acak untuk pembaruan posisi partikel PSO
             np.random.seed(SEED + it) 
             r1 = np.random.rand(*optimizer.swarm.position.shape)
             r2 = np.random.rand(*optimizer.swarm.position.shape)
