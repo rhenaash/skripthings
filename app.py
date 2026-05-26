@@ -245,9 +245,10 @@ if uploaded_file is not None:
         PSOSL_iters = 5
         
         # Sesuai instruksi library pyswarms, seed random numpy harus dikunci tepat sebelum inisialisasi swarm
+        
         np.random.seed(SEED)
         optimizer = GlobalBestPSO(
-            n_particles=18, dimensions=4,
+            n_particles=20, dimensions=4,
             options={'c1': 2.0, 'c2': 2.0, 'w': 0.7},
             bounds=([16, 0.0001, 16, 0.01], [128, 0.01, 128, 0.5])
         )
