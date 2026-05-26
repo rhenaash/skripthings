@@ -7,8 +7,6 @@ import os
 # 1. LOCK SEED GLOBAL (AGAR DETERMINISTIK)
 # ==========================================
 SEED = 49
-os.environ['PYTHONHASHSEED'] = str(SEED)
-
 tf.keras.utils.set_random_seed(SEED)
 tf.config.experimental.enable_op_determinism()
 
@@ -27,12 +25,10 @@ import gc
 from pyswarms.single import GlobalBestPSO
 
 def reset_seeds(seed=SEED):
-    os.environ['PYTHONHASHSEED'] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
     tf.random.set_seed(seed)
     tf.keras.utils.set_random_seed(seed)
-    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
     tf.config.experimental.enable_op_determinism()
 
 # Layout Judul Aplikasi
