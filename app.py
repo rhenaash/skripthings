@@ -10,13 +10,13 @@ import pandas as pd
 import numpy as np
 import tensorflow as tf
 
-# ==========================================
+# ==========================================TF
 # PENGUNCIAN SEED UNTUK REPRODUKSIBILITAS
 # ==========================================
 SEED_VALUE = 49
 random.seed(SEED_VALUE)
 np.random.seed(SEED_VALUE)
-tf.random.set_seed(SEED_VALUE)
+.set_seed(SEED_VALUE)
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -275,7 +275,7 @@ if uploaded_file is not None:
                         batch = int(np.round(p[2]))
                         dropout = float(p[3])
                         try:
-                            tf.random.set_seed(1)
+                            tf.random.set_seed(5)
                             clear_session()
                         
                             model = Sequential([
