@@ -1,5 +1,3 @@
-bisa tolong berikan aku 1 file penuh ngga ya? aku gatau error di mana
-
 import os
 import gc
 import random
@@ -452,7 +450,7 @@ if uploaded_file is not None:
             best_lr_PSOSL = float(best_pos_PSOSL[1])
             best_batch_PSOSL = int(np.round(best_pos_PSOSL[2]))
             best_dropout_PSOSL = float(best_pos_PSOSL[3])
-            best_epochs_PSOSL = len(history_final.history['loss'])
+            best_epochs_PSOSL = 50
 
             st.success("PSO Finished")
 
@@ -500,7 +498,7 @@ if uploaded_file is not None:
                 callbacks=[early_stop],
                 verbose=1
             )
-
+            
             os.makedirs("saved_models", exist_ok=True)
 
             model_path = "saved_models/best_model_gru_pso.h5"
