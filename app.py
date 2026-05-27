@@ -16,7 +16,7 @@ import tensorflow as tf
 SEED_VALUE = 49
 random.seed(SEED_VALUE)
 np.random.seed(SEED_VALUE)
-tf.random.set_seed(42)
+tf.random.set_seed(SEED_VALUE)
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -276,7 +276,7 @@ if uploaded_file is not None:
                         batch = int(np.round(p[2]))
                         dropout = float(p[3])
                         try:
-                            np.random.seed(49)
+                            random.seed(49)
                             tf.random.set_seed(42)
                             clear_session()
                         
@@ -464,7 +464,6 @@ if uploaded_file is not None:
             # =====================================================
             # FINAL TRAINING
             # =====================================================
-            tf.random.set_seed(49)
             GRU_PSOSL = Sequential([
                 Input(shape=(X_train.shape[1], X_train.shape[2])),
             
