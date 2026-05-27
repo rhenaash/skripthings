@@ -274,7 +274,10 @@ if uploaded_file is not None:
                         lr = float(p[1])
                         batch = int(np.round(p[2]))
                         dropout = float(p[3])
-                            
+                        try:
+                            tf.random.set_seed(1)
+                            clear_session()
+                        
                             model = Sequential([
                                 Input(shape=(X_tr.shape[1], X_tr.shape[2])),
                                 GRU(
