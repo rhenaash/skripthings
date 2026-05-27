@@ -276,7 +276,7 @@ if uploaded_file is not None:
                         dropout = float(p[3])
                         try:
                             np.random.seed(49)
-                            tf.random.set_seed(49)
+                            tf.random.set_seed(1)
                             clear_session()
                         
                             model = Sequential([
@@ -463,7 +463,7 @@ if uploaded_file is not None:
             # =====================================================
             # FINAL TRAINING
             # =====================================================
-            tf.random.set_seed(49)
+            tf.random.set_seed(1)
             GRU_PSOSL = Sequential([
                 Input(shape=(X_train.shape[1], X_train.shape[2])),
             
@@ -482,12 +482,19 @@ if uploaded_file is not None:
                 loss='mse'
             )
 
+            early_stop = EarlyStopping(
+                monitor='val_loss',
+                patience=7,
+                restore_best_weights=True
+            )
+            
             history_final = GRU_PSOSL.fit(
                 X_train,
                 y_train,
                 epochs=50,
                 batch_size=best_batch_PSOSL,
                 validation_split=0.2,
+                callbacks=[early_stop]
                 verbose=1
             )
 
