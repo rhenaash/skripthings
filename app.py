@@ -16,7 +16,7 @@ import tensorflow as tf
 SEED_VALUE = 49
 random.seed(SEED_VALUE)
 np.random.seed(SEED_VALUE)
-tf.random.set_seed(SEED_VALUE)
+tf.random.set_seed(42)
 
 import matplotlib.pyplot as plt
 import seaborn as sns
