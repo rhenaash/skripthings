@@ -494,7 +494,7 @@ if uploaded_file is not None:
                 epochs=50,
                 batch_size=best_batch_PSOSL,
                 validation_split=0.2,
-                callbacks=[early_stop]
+                callbacks=[early_stop],
                 verbose=1
             )
 
