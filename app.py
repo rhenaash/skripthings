@@ -299,7 +299,7 @@ if uploaded_file is not None:
                                 X_tr,
                                 y_tr,
                                 epochs=10,
-                                batch_size=batch
+                                batch_size=batch,
                                 verbose=0
                             )
 
