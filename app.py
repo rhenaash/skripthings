@@ -275,7 +275,7 @@ if uploaded_file is not None:
                         batch = int(np.round(p[2]))
                         dropout = float(p[3])
                         try:
-                            np.random.seed(49)
+                            np.random.seed(43)
                             clear_session()
                         
                             model = Sequential([
