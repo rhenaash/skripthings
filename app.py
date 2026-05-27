@@ -277,8 +277,8 @@ if uploaded_file is not None:
 
                         try:
                             tf.random.set_seed(49)
-                            np.random.seed(49)
                             clear_session()
+                            random.seed(49)
                             
                             model = Sequential([
                                 Input(shape=(X_tr.shape[1], X_tr.shape[2])),
@@ -360,7 +360,7 @@ if uploaded_file is not None:
             # =====================================================
             # LOOP PSO
             # =====================================================
-            random.seed(49)
+            np.random.seed(49)
             for it in range(PSOSL_iters):
 
                 costs_PSOSL = pso_obj_PSOSL(optimizer.swarm.position)
@@ -465,6 +465,7 @@ if uploaded_file is not None:
             # FINAL TRAINING
             # =====================================================
             tf.random.set_seed(49)
+
             GRU_PSOSL = Sequential([
                 Input(shape=(X_train.shape[1], X_train.shape[2])),
             
@@ -473,13 +474,9 @@ if uploaded_file is not None:
                     activation='tanh'
                 ),
             
-                Dropout(best_dropout_PSOSL, seed=49),
+                Dropout(best_dropout_PSOSL),
             
-                Dense(
-                    1,
-                    kernel_initializer=tf.keras.initializers.GlorotUniform(seed=49),
-                    bias_initializer=tf.keras.initializers.Zeros()
-                )
+                Dense(1)
             ])
 
             GRU_PSOSL.compile(
