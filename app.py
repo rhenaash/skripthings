@@ -277,6 +277,7 @@ if uploaded_file is not None:
 
                         try:
                             tf.random.set_seed(49)
+                            np.random.set_seed(49)
                             clear_session()
 
                             model = Sequential([
@@ -285,7 +286,7 @@ if uploaded_file is not None:
                                     units=units,
                                     activation='tanh'
                                 ),
-                                Dropout(dropout, seed=49),
+                                Dropout(dropout),
                                 Dense(1)
                             ])
 
@@ -470,12 +471,19 @@ if uploaded_file is not None:
             
                 GRU(
                     units=best_units_PSOSL,
-                    activation='tanh'
+                    activation='tanh',
+                    kernel_initializer=tf.keras.initializers.GlorotUniform(seed=49),
+                    recurrent_initializer=tf.keras.initializers.Orthogonal(seed=49),
+                    bias_initializer=tf.keras.initializers.Zeros()
                 ),
             
-                Dropout(best_dropout_PSOSL),
+                Dropout(best_dropout_PSOSL, seed=49),
             
-                Dense(1)
+                Dense(
+                    1,
+                    kernel_initializer=tf.keras.initializers.GlorotUniform(seed=49),
+                    bias_initializer=tf.keras.initializers.Zeros()
+                )
             ])
 
             GRU_PSOSL.compile(
