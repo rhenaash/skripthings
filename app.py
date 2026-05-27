@@ -464,6 +464,7 @@ if uploaded_file is not None:
             # =====================================================
             # FINAL TRAINING
             # =====================================================
+            random.seed(123)
             GRU_PSOSL = Sequential([
                 Input(shape=(X_train.shape[1], X_train.shape[2])),
             
