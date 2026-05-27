@@ -67,7 +67,7 @@ PSOSL_particles = st.sidebar.number_input(
 PSOSL_iters = st.sidebar.number_input(
     "Jumlah Iterasi",
     min_value=1,
-    value=5
+    value=2
 )
 
 c1 = st.sidebar.number_input(
@@ -476,13 +476,9 @@ if uploaded_file is not None:
                     bias_initializer=tf.keras.initializers.Zeros()
                 ),
             
-                Dropout(best_dropout_PSOSL, seed=49),
+                Dropout(best_dropout_PSOSL),
             
-                Dense(
-                    1,
-                    kernel_initializer=tf.keras.initializers.GlorotUniform(seed=49),
-                    bias_initializer=tf.keras.initializers.Zeros()
-                )
+                Dense(1)
             ])
 
             GRU_PSOSL.compile(
