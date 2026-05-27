@@ -360,7 +360,9 @@ if uploaded_file is not None:
             # =====================================================
             # LOOP PSO
             # =====================================================
-            np.random.seed(123)
+            np.random.seed(49)
+            tf.random.set_seed(49)
+
             for it in range(PSOSL_iters):
 
                 costs_PSOSL = pso_obj_PSOSL(optimizer.swarm.position)
@@ -464,7 +466,7 @@ if uploaded_file is not None:
             # =====================================================
             # FINAL TRAINING
             # =====================================================
-            random.seed(123)
+            np.random.seed(49)
             GRU_PSOSL = Sequential([
                 Input(shape=(X_train.shape[1], X_train.shape[2])),
             
