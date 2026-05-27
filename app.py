@@ -277,7 +277,7 @@ if uploaded_file is not None:
 
                         try:
                             tf.random.set_seed(49)
-                            np.random.seed(49)
+                            random.seed(49)
                             clear_session()
 
                             model = Sequential([
