@@ -471,10 +471,7 @@ if uploaded_file is not None:
             
                 GRU(
                     units=best_units_PSOSL,
-                    activation='tanh',
-                    kernel_initializer=tf.keras.initializers.GlorotUniform(seed=49),
-                    recurrent_initializer=tf.keras.initializers.Orthogonal(seed=49),
-                    bias_initializer=tf.keras.initializers.Zeros()
+                    activation='tanh'
                 ),
             
                 Dropout(best_dropout_PSOSL, seed=49),
