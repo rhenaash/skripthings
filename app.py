@@ -32,6 +32,7 @@ from sklearn.metrics import (
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import GRU, Dense, Dropout, Input
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.backend import clear_session
 
 from pyswarms.single.global_best import GlobalBestPSO
@@ -449,7 +450,7 @@ if uploaded_file is not None:
             best_lr_PSOSL = float(best_pos_PSOSL[1])
             best_batch_PSOSL = int(np.round(best_pos_PSOSL[2]))
             best_dropout_PSOSL = float(best_pos_PSOSL[3])
-            best_epochs_PSOSL = 50
+            best_epochs_PSOSL = len(history_final.history['loss'])
 
             st.success("PSO Finished")
 
