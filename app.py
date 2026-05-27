@@ -239,6 +239,7 @@ if uploaded_file is not None:
             # =====================================================
             # PSO CONFIG
             # =====================================================
+            tf.random.set_seed(49)
             PSOSL_bounds = (
                 [16, 0.0001, 16, 0.01],
                 [128, 0.01, 128, 0.5]
@@ -276,10 +277,10 @@ if uploaded_file is not None:
                         dropout = float(p[3])
 
                         try:
+                            clear_session()
                             tf.random.set_seed(49)
                             np.random.seed(49)
-                            clear_session()
-
+                            
                             model = Sequential([
                                 Input(shape=(X_tr.shape[1], X_tr.shape[2])),
                                 GRU(
