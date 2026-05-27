@@ -13,8 +13,8 @@ import tensorflow as tf
 # ==========================================TF
 # PENGUNCIAN SEED UNTUK REPRODUKSIBILITAS
 # ==========================================
-SEED_VALUE = 49
-random.seed()
+SEED_VALUE = 42
+random.seed(SEED_VALUE)
 np.random.seed(SEED_VALUE)
 tf.random.set_seed(SEED_VALUE)
 
