@@ -360,8 +360,7 @@ if uploaded_file is not None:
             # =====================================================
             # LOOP PSO
             # =====================================================
-            np.random.seed(49)
-            tf.random.set_seed(49)
+            random.seed(49)
             for it in range(PSOSL_iters):
 
                 costs_PSOSL = pso_obj_PSOSL(optimizer.swarm.position)
