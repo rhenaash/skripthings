@@ -476,9 +476,13 @@ if uploaded_file is not None:
                     bias_initializer=tf.keras.initializers.Zeros()
                 ),
             
-                Dropout(best_dropout_PSOSL),
+                Dropout(best_dropout_PSOSL, seed=49),
             
-                Dense(1)
+                Dense(
+                    1,
+                    kernel_initializer=tf.keras.initializers.GlorotUniform(seed=49),
+                    bias_initializer=tf.keras.initializers.Zeros()
+                )
             ])
 
             GRU_PSOSL.compile(
