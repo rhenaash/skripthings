@@ -285,7 +285,7 @@ if uploaded_file is not None:
                                     units=units,
                                     activation='tanh'
                                 ),
-                                Dropout(dropout, , seed=49),
+                                Dropout(dropout, seed=49),
                                 Dense(1)
                             ])
 
