@@ -276,8 +276,7 @@ if uploaded_file is not None:
                         batch = int(np.round(p[2]))
                         dropout = float(p[3])
                         try:
-                            np.random.seed(49)
-                            tf.random.set_seed(1)
+                            tf.random.set_seed(42)
                             clear_session()
                         
                             model = Sequential([
@@ -464,7 +463,7 @@ if uploaded_file is not None:
             # =====================================================
             # FINAL TRAINING
             # =====================================================
-            tf.random.set_seed(1)
+            tf.random.set_seed(49)
             GRU_PSOSL = Sequential([
                 Input(shape=(X_train.shape[1], X_train.shape[2])),
             
