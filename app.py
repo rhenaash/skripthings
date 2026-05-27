@@ -277,7 +277,7 @@ if uploaded_file is not None:
                         dropout = float(p[3])
                         try:
                             random.seed(49)
-                            tf.random.set_seed(42)
+                            tf.random.set_seed(49)
                             clear_session()
                         
                             model = Sequential([
