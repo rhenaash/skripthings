@@ -277,7 +277,7 @@ if uploaded_file is not None:
                         dropout = float(p[3])
                         try:
                             random.seed(189)
-                            tf.random.set_seed(42)
+                            tf.random.set_seed(49)
                             clear_session()
                         
                             model = Sequential([
@@ -360,9 +360,9 @@ if uploaded_file is not None:
             # =====================================================
             # LOOP PSO
             # =====================================================
-            np.random.seed()
-            random.seed()
-            tf.random.set_seed(14)
+            np.random.seed(80)
+            random.seed(80)
+            tf.random.set_seed(49)
             
             for it in range(PSOSL_iters):
 
@@ -467,7 +467,7 @@ if uploaded_file is not None:
             # =====================================================
             # FINAL TRAINING
             # =====================================================
-            np.random.seed(49)
+            np.random.seed(189)
             GRU_PSOSL = Sequential([
                 Input(shape=(X_train.shape[1], X_train.shape[2])),
             
