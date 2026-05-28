@@ -361,8 +361,8 @@ if uploaded_file is not None:
             # LOOP PSO
             # =====================================================
             np.random.seed(49)
-            random.seed(123)
-            tf.random.set_seed(123)
+            random.seed(132)
+            tf.random.set_seed(49)
             
             for it in range(PSOSL_iters):
 
