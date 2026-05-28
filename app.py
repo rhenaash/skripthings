@@ -360,8 +360,8 @@ if uploaded_file is not None:
             # =====================================================
             # LOOP PSO
             # =====================================================
-            np.random.seed(80)
-            random.seed(80)
+            np.random.seed(1088)
+            random.seed(1088)
             tf.random.set_seed(49)
             
             for it in range(PSOSL_iters):
@@ -467,7 +467,7 @@ if uploaded_file is not None:
             # =====================================================
             # FINAL TRAINING
             # =====================================================
-            np.random.seed(189)
+            np.random.seed(123)
             GRU_PSOSL = Sequential([
                 Input(shape=(X_train.shape[1], X_train.shape[2])),
             
