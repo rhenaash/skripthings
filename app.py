@@ -276,6 +276,7 @@ if uploaded_file is not None:
                         batch = int(np.round(p[2]))
                         dropout = float(p[3])
                         try:
+                            tf.random.set_seed(49)
                             random.seed(189)
                             clear_session()
                         
@@ -359,9 +360,9 @@ if uploaded_file is not None:
             # =====================================================
             # LOOP PSO
             # =====================================================
-            np.random.seed(1088)
-            random.seed(1088)
-            tf.random.set_seed(49)
+            np.random.seed(189)
+            random.seed(189)
+            tf.random.set_seed(1890)
             
             for it in range(PSOSL_iters):
 
