@@ -360,9 +360,9 @@ if uploaded_file is not None:
             # =====================================================
             # LOOP PSO
             # =====================================================
-            np.random.seed(49)
-            random.seed(459)
-            tf.random.set_seed(19)
+            np.random.seed()
+            random.seed()
+            tf.random.set_seed()
             
             for it in range(PSOSL_iters):
 
