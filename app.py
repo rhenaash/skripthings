@@ -13,7 +13,7 @@ import tensorflow as tf
 # ==========================================TF
 # PENGUNCIAN SEED UNTUK REPRODUKSIBILITAS
 # ==========================================
-SEED_VALUE = 42
+SEED_VALUE = 49
 random.seed(SEED_VALUE)
 np.random.seed(SEED_VALUE)
 tf.random.set_seed(SEED_VALUE)
@@ -276,7 +276,7 @@ if uploaded_file is not None:
                         batch = int(np.round(p[2]))
                         dropout = float(p[3])
                         try:
-                            random.seed(123)
+                            random.seed(189)
                             tf.random.set_seed(49)
                             clear_session()
                         
