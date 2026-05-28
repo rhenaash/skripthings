@@ -276,7 +276,7 @@ if uploaded_file is not None:
                         batch = int(np.round(p[2]))
                         dropout = float(p[3])
                         try:
-                            random.seed(189)
+                            random.seed(389)
                             tf.random.set_seed(49)
                             clear_session()
                         
