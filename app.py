@@ -362,7 +362,7 @@ if uploaded_file is not None:
             # =====================================================
             np.random.seed()
             random.seed()
-            tf.random.set_seed()
+            tf.random.set_seed(14)
             
             for it in range(PSOSL_iters):
 
