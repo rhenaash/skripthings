@@ -252,7 +252,7 @@ if uploaded_file is not None:
             init_pos = np.array([best_params for _ in range(PSOSL_particles)])
             st.info(f"Injeksi berhasil! PSO mulai dari: {best_params}")
     
-            with st.spinner("Training Model..."):
+        with st.spinner("Training Model..."):
 
             # =====================================================
             # PSO CONFIG
@@ -376,10 +376,7 @@ if uploaded_file is not None:
             # =====================================================
             # LOOP PSO
             # =====================================================
-            np.random.seed(189)
-            random.seed(189)
             tf.random.set_seed(49)
-
             all_particle_logs = []
             
             for it in range(PSOSL_iters):
