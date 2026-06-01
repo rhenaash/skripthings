@@ -440,7 +440,7 @@ if uploaded_file is not None:
                             try:
                                 SEED = 49
                                 tf.random.set_seed(SEED)
-                                random.seed(189)
+                                random.seed(127)
                                 clear_session()
 
                                 model = Sequential([
@@ -521,7 +521,7 @@ if uploaded_file is not None:
                 # =====================================================
                 # LOOP PSO
                 # =====================================================
-                tf.random.set_seed(189)
+                tf.random.set_seed(127)
 
                 if use_colab_cost:
                     st.info("🔁 Loop PSO menggunakan **Cost dari CSV** (parameter cocok dengan konfigurasi referensi)")
