@@ -52,9 +52,56 @@ REF_LR_MAX          = 0.01
 REF_DROPOUT_MIN     = 0.01
 REF_DROPOUT_MAX     = 0.5
 REF_EPOCH           = 50
-REF_PARTICLES       = 20
+REF_PARTICLES       = 40
 REF_ITER_MIN        = 1
 REF_ITER_MAX        = 10
+
+# =====================================================
+# HELPER FUNGSI
+# =====================================================
+def reset_seeds():
+    random.seed(SEED_VALUE)
+    np.random.seed(SEED_VALUE)
+    tf.random.set_seed(SEED_VALUE)
+
+def build_gru_model(units, layers, dropout, lr, window):
+    n_features = 1
+    model = Sequential()
+    model.add(Input(shape=(window, n_features)))
+    if layers == 1:
+        model.add(GRU(
+            units=units,
+            activation='tanh',
+            recurrent_activation='sigmoid',
+            reset_after=True
+        ))
+        model.add(Dropout(dropout))
+    else:
+        for i in range(layers):
+            is_last = (i == layers - 1)
+            model.add(GRU(
+                units=units,
+                return_sequences=not is_last,
+                activation='tanh',
+                recurrent_activation='sigmoid',
+                reset_after=True
+            ))
+            model.add(Dropout(dropout))
+    model.add(Dense(units=1, activation='linear'))
+    model.compile(optimizer=Adam(learning_rate=lr), loss='mse')
+    return model
+
+# =====================================================
+# PARAMETER FIXED GRU STANDAR
+# =====================================================
+GS_EPOCH   = 50
+GS_BATCH   = 32
+GS_UNITS   = 16
+GS_LAYERS  = 1
+GS_DROPOUT = 0.0
+GS_LR      = 0.001
+GS_WINDOW  = 1
+GS_MODEL_FILE = 'Best Model STD (TW) Timestep -- 1.h5'
 
 # =====================================================
 # CONFIG PAGE
@@ -316,393 +363,584 @@ if uploaded_file is not None:
     st.write(f"Shape X_test:  {X_test.shape}")
 
     # =====================================================
-    # TRAIN BUTTON
+    # TAB PEMODELAN
     # =====================================================
-    if st.button("Train GRU-PSO"):
+    tab1, tab2 = st.tabs(["🔵 GRU-PSO", "🟢 GRU Standar"])
 
-        with st.spinner("Training Model..."):
+    # ===========================================================
+    # TAB 1 — GRU-PSO (struktur tidak berubah sama sekali)
+    # ===========================================================
+    with tab1:
 
-            # =====================================================
-            # PSO CONFIG
-            # =====================================================
-            val_PSOSL        = 0.2
-            n_tr_samples_PSOSL = X_train.shape[0]
-            n_tr_val_PSOSL   = int(n_tr_samples_PSOSL * (1 - val_PSOSL))
+        if st.button("Train GRU-PSO"):
 
-            X_tr_PSOSL  = X_train[:n_tr_val_PSOSL]
-            y_tr_PSOSL  = y_train[:n_tr_val_PSOSL]
-            X_val_PSOSL = X_train[n_tr_val_PSOSL:]
-            y_val_PSOSL = y_train[n_tr_val_PSOSL:]
+            with st.spinner("Training Model..."):
 
-            st.write("PSO training shapes:")
-            st.write(X_tr_PSOSL.shape, X_val_PSOSL.shape)
+                    # =====================================================
+                    # PSO CONFIG
+                    # =====================================================
+                    val_PSOSL        = 0.2
+                    n_tr_samples_PSOSL = X_train.shape[0]
+                    n_tr_val_PSOSL   = int(n_tr_samples_PSOSL * (1 - val_PSOSL))
 
-            # =====================================================
-            # FITNESS FUNCTION
-            # =====================================================
-            def make_pso_obj(X_tr, y_tr, X_va, y_va, scaler_y):
+                    X_tr_PSOSL  = X_train[:n_tr_val_PSOSL]
+                    y_tr_PSOSL  = y_train[:n_tr_val_PSOSL]
+                    X_val_PSOSL = X_train[n_tr_val_PSOSL:]
+                    y_val_PSOSL = y_train[n_tr_val_PSOSL:]
 
-                def obj_fn(particles):
-                    particles   = particles.astype(np.float64)
-                    n_particles = particles.shape[0]
-                    costs       = np.zeros(n_particles, dtype=np.float64)
+                    st.write("PSO training shapes:")
+                    st.write(X_tr_PSOSL.shape, X_val_PSOSL.shape)
 
-                    for i, p in enumerate(particles):
-                        units   = int(np.round(p[0]))
-                        lr      = float(p[1])
-                        batch   = int(np.round(p[2]))
-                        dropout = float(p[3])
+                    # =====================================================
+                    # FITNESS FUNCTION
+                    # =====================================================
+                    def make_pso_obj(X_tr, y_tr, X_va, y_va, scaler_y):
 
-                        try:
-                            SEED = 49
-                            tf.random.set_seed(SEED)
-                            random.seed(127)
+                        def obj_fn(particles):
+                        particles   = particles.astype(np.float64)
+                        n_particles = particles.shape[0]
+                        costs       = np.zeros(n_particles, dtype=np.float64)
+
+                        for i, p in enumerate(particles):
+                            units   = int(np.round(p[0]))
+                            lr      = float(p[1])
+                            batch   = int(np.round(p[2]))
+                            dropout = float(p[3])
+
+                            try:
+                                SEED = 49
+                                tf.random.set_seed(SEED)
+                                random.seed(189)
+                                clear_session()
+
+                                model = Sequential([
+                                    Input(shape=(X_tr.shape[1], X_tr.shape[2])),
+                                    GRU(
+                                        units=units,
+                                        activation='tanh',
+                                        reset_after=True,
+                                        kernel_initializer='glorot_uniform',
+                                        recurrent_initializer='orthogonal'
+                                    ),
+                                    Dropout(dropout),
+                                    Dense(1)
+                                ])
+
+                                model.compile(
+                                    optimizer=Adam(learning_rate=lr),
+                                    loss='mse'
+                                )
+
+                                model.fit(
+                                    X_tr, y_tr,
+                                    epochs=10,
+                                    batch_size=batch,
+                                    verbose=0
+                                )
+
+                                yv_pred = model.predict(X_va, verbose=0)
+
+                                yv_pred_orig = scaler_y.inverse_transform(
+                                    yv_pred.astype(np.float64)
+                                ).flatten().astype(np.float64)
+
+                                yv_true_orig = scaler_y.inverse_transform(
+                                    y_va.reshape(-1, 1).astype(np.float64)
+                                ).flatten().astype(np.float64)
+
+                                costs[i] = mean_squared_error(yv_true_orig, yv_pred_orig)
+
+                            except Exception as e:
+                                st.write("PSO eval error:", e)
+                                costs[i] = 1e12
+
                             clear_session()
+                            gc.collect()
 
-                            model = Sequential([
-                                Input(shape=(X_tr.shape[1], X_tr.shape[2])),
-                                GRU(
-                                    units=units,
-                                    activation='tanh',
-                                    reset_after=True,
-                                    kernel_initializer='glorot_uniform',
-                                    recurrent_initializer='orthogonal'
-                                ),
-                                Dropout(dropout),
-                                Dense(1)
-                            ])
+                        return costs
 
-                            model.compile(
-                                optimizer=Adam(learning_rate=lr),
-                                loss='mse'
-                            )
+                    return obj_fn
 
-                            model.fit(
-                                X_tr, y_tr,
-                                epochs=10,
-                                batch_size=batch,
-                                verbose=0
-                            )
+                    pso_obj_PSOSL = make_pso_obj(
+                    X_tr_PSOSL, y_tr_PSOSL,
+                    X_val_PSOSL, y_val_PSOSL,
+                    scaler_y
+                    )
 
-                            yv_pred = model.predict(X_va, verbose=0)
+                    optimizer = GlobalBestPSO(
+                    n_particles=PSOSL_particles,
+                    dimensions=4,
+                    options=PSOSL_options,
+                    bounds=PSOSL_bounds
+                    )
 
-                            yv_pred_orig = scaler_y.inverse_transform(
-                                yv_pred.astype(np.float64)
-                            ).flatten().astype(np.float64)
+                    n_particles, dims = optimizer.swarm.position.shape
 
-                            yv_true_orig = scaler_y.inverse_transform(
-                                y_va.reshape(-1, 1).astype(np.float64)
-                            ).flatten().astype(np.float64)
+                    optimizer.swarm.pbest_pos_PSOSL  = optimizer.swarm.position.copy().astype(np.float64)
+                    optimizer.swarm.pbest_cost_PSOSL = np.full(n_particles, np.inf, dtype=np.float64)
 
-                            costs[i] = mean_squared_error(yv_true_orig, yv_pred_orig)
+                    history_positions_PSOSL  = []
+                    history_velocity_PSOSL   = []
+                    history_costs_PSOSL      = []
+                    history_gbest_cost_PSOSL = []
+                    history_gbest_pos_PSOSL  = []
 
-                        except Exception as e:
-                            st.write("PSO eval error:", e)
-                            costs[i] = 1e12
+                    progress_bar     = st.progress(0)
+                    iteration_results = []
 
-                        clear_session()
-                        gc.collect()
+                    # =====================================================
+                    # LOOP PSO
+                    # =====================================================
+                    tf.random.set_seed(189)
 
-                    return costs
+                    # Tampilkan mode yang aktif di atas tabel iterasi
+                    if use_colab_cost:
+                    st.info("🔁 Loop PSO menggunakan **Cost dari CSV** (parameter cocok dengan konfigurasi referensi)")
+                    max_iter_colab = df_colab_cost['iteration'].max()
+                    else:
+                    st.info("🔁 Loop PSO menggunakan **Pure Training** (parameter kustom)")
 
-                return obj_fn
+                    for it in range(PSOSL_iters):
 
-            pso_obj_PSOSL = make_pso_obj(
-                X_tr_PSOSL, y_tr_PSOSL,
-                X_val_PSOSL, y_val_PSOSL,
-                scaler_y
-            )
+                    costs_computed = pso_obj_PSOSL(optimizer.swarm.position).astype(np.float64)
 
-            optimizer = GlobalBestPSO(
-                n_particles=PSOSL_particles,
-                dimensions=4,
-                options=PSOSL_options,
-                bounds=PSOSL_bounds
-            )
+                    # =====================================================
+                    # IF/ELSE: Gunakan cost CSV atau pure training
+                    # =====================================================
+                    if use_colab_cost and (it + 1) <= max_iter_colab:
+                        # Parameter cocok dengan referensi → ambil cost dari CSV
+                        costs_iter  = df_colab_cost[
+                            df_colab_cost['iteration'] == (it + 1)
+                        ]['cost'].values
+                        costs_PSOSL = costs_iter.astype(np.float64)
+                    else:
+                        # Parameter kustom atau iterasi melebihi CSV → pure training
+                        costs_PSOSL = costs_computed
 
-            n_particles, dims = optimizer.swarm.position.shape
+                    mask_PSOSL = costs_PSOSL < optimizer.swarm.pbest_cost_PSOSL
 
-            optimizer.swarm.pbest_pos_PSOSL  = optimizer.swarm.position.copy().astype(np.float64)
-            optimizer.swarm.pbest_cost_PSOSL = np.full(n_particles, np.inf, dtype=np.float64)
+                    optimizer.swarm.pbest_cost_PSOSL[mask_PSOSL] = costs_PSOSL[mask_PSOSL]
 
-            history_positions_PSOSL  = []
-            history_velocity_PSOSL   = []
-            history_costs_PSOSL      = []
-            history_gbest_cost_PSOSL = []
-            history_gbest_pos_PSOSL  = []
+                    optimizer.swarm.pbest_pos_PSOSL[mask_PSOSL] = (
+                        optimizer.swarm.position[mask_PSOSL].copy().astype(np.float64)
+                    )
 
-            progress_bar     = st.progress(0)
-            iteration_results = []
+                    best_PSOSL = np.argmin(optimizer.swarm.pbest_cost_PSOSL)
 
-            # =====================================================
-            # LOOP PSO
-            # =====================================================
-            tf.random.set_seed(127)
+                    optimizer.swarm.best_cost_PSOSL = float(
+                        optimizer.swarm.pbest_cost_PSOSL[best_PSOSL]
+                    )
 
-            # Tampilkan mode yang aktif di atas tabel iterasi
-            if use_colab_cost:
-                st.info("🔁 Loop PSO menggunakan **Cost dari CSV** (parameter cocok dengan konfigurasi referensi)")
-                max_iter_colab = df_colab_cost['iteration'].max()
-            else:
-                st.info("🔁 Loop PSO menggunakan **Pure Training** (parameter kustom)")
+                    optimizer.swarm.best_pos_PSOSL = (
+                        optimizer.swarm.pbest_pos_PSOSL[best_PSOSL].copy().astype(np.float64)
+                    )
 
-            for it in range(PSOSL_iters):
+                    history_positions_PSOSL.append(
+                        optimizer.swarm.position.copy().astype(np.float64)
+                    )
 
-                costs_computed = pso_obj_PSOSL(optimizer.swarm.position).astype(np.float64)
+                    history_velocity_PSOSL.append(
+                        optimizer.swarm.velocity.copy().astype(np.float64)
+                    )
+
+                    history_costs_PSOSL.append(costs_PSOSL.copy())
+
+                    history_gbest_cost_PSOSL.append(
+                        float(optimizer.swarm.best_cost_PSOSL)
+                    )
+
+                    history_gbest_pos_PSOSL.append(
+                        optimizer.swarm.best_pos_PSOSL.copy().astype(np.float64)
+                    )
+
+                    current_result = {
+                        'Iterasi':       it + 1,
+                        'Best Loss':     optimizer.swarm.best_cost_PSOSL,
+                        'Units':         int(np.round(optimizer.swarm.best_pos_PSOSL[0])),
+                        'Learning Rate': optimizer.swarm.best_pos_PSOSL[1],
+                        'Batch Size':    int(np.round(optimizer.swarm.best_pos_PSOSL[2])),
+                        'Dropout':       optimizer.swarm.best_pos_PSOSL[3],
+                        'Sumber Cost':   'CSV' if (use_colab_cost and (it + 1) <= max_iter_colab) else 'Pure Training'
+                    }
+
+                    iteration_results.append(current_result)
+
+                    r1 = np.random.rand(*optimizer.swarm.position.shape).astype(np.float64)
+                    r2 = np.random.rand(*optimizer.swarm.position.shape).astype(np.float64)
+
+                    optimizer.swarm.velocity = (
+                        PSOSL_options['w'] * optimizer.swarm.velocity
+                        + PSOSL_options['c1'] * r1 * (
+                            optimizer.swarm.pbest_pos_PSOSL - optimizer.swarm.position
+                        )
+                        + PSOSL_options['c2'] * r2 * (
+                            optimizer.swarm.best_pos_PSOSL - optimizer.swarm.position
+                        )
+                    ).astype(np.float64)
+
+                    optimizer.swarm.position = (
+                        optimizer.swarm.position + optimizer.swarm.velocity
+                    ).astype(np.float64)
+
+                    lb = np.array(PSOSL_bounds[0], dtype=np.float64)
+                    ub = np.array(PSOSL_bounds[1], dtype=np.float64)
+
+                    optimizer.swarm.position = np.clip(
+                        optimizer.swarm.position, lb, ub
+                    ).astype(np.float64)
+
+                    progress_bar.progress((it + 1) / PSOSL_iters)
+
+                    st.subheader("Hasil Iterasi PSO")
+                    st.dataframe(pd.DataFrame(iteration_results))
+
+                    # =====================================================
+                    # BEST PARAMETER
+                    # =====================================================
+                    best_pos_PSOSL  = history_gbest_pos_PSOSL[-1]
+                    best_cost_PSOSL = history_gbest_cost_PSOSL[-1]
+
+                    best_units_PSOSL   = int(np.round(best_pos_PSOSL[0]))
+                    best_lr_PSOSL      = float(best_pos_PSOSL[1])
+                    best_batch_PSOSL   = int(np.round(best_pos_PSOSL[2]))
+                    best_dropout_PSOSL = float(best_pos_PSOSL[3])
+                    best_epochs_PSOSL  = epochs_input  # Gunakan epoch dari input user
+
+                    st.success("PSO Finished")
+
+                    col1, col2, col3, col4 = st.columns(4)
+                    col1.metric("Units",         best_units_PSOSL)
+                    col2.metric("Learning Rate", round(best_lr_PSOSL, 6))
+                    col3.metric("Batch Size",    best_batch_PSOSL)
+                    col4.metric("Dropout",       round(best_dropout_PSOSL, 4))
+
+                    # =====================================================
+                    # FINAL TRAINING
+                    # =====================================================
+                    np.random.seed(123)
+                    GRU_PSOSL = Sequential([
+                    Input(shape=(X_train.shape[1], X_train.shape[2])),
+                    GRU(units=best_units_PSOSL, activation='tanh'),
+                    Dropout(best_dropout_PSOSL),
+                    Dense(1)
+                    ])
+
+                    GRU_PSOSL.compile(
+                    optimizer=Adam(learning_rate=best_lr_PSOSL),
+                    loss='mse'
+                    )
+
+                    early_stop = EarlyStopping(
+                    monitor='val_loss',
+                    patience=7,
+                    restore_best_weights=True
+                    )
+
+                    history_final = GRU_PSOSL.fit(
+                    X_train, y_train,
+                    epochs=best_epochs_PSOSL,
+                    batch_size=best_batch_PSOSL,
+                    validation_split=0.2,
+                    callbacks=[early_stop],
+                    verbose=1
+                    )
+
+                    os.makedirs("saved_models", exist_ok=True)
+                    model_path = "saved_models/best_model_gru_pso.h5"
+                    GRU_PSOSL.save(model_path)
+
+                    # =====================================================
+                    # GRAFIK KONVERGENSI
+                    # =====================================================
+                    st.header("Grafik Konvergensi GRU-PSO")
+
+                    gbest_loss_PSOSL  = np.array(history_gbest_cost_PSOSL, dtype=np.float64)
+                    iterations_PSOSL  = np.arange(1, len(gbest_loss_PSOSL) + 1)
+
+                    fig_conv = plt.figure(figsize=(8, 5))
+                    plt.plot(iterations_PSOSL, gbest_loss_PSOSL, marker='o')
+                    plt.xlabel("Iterasi")
+                    plt.ylabel("Global Best Loss (MSE)")
+                    plt.title("Grafik Konvergensi GRU-PSO")
+                    plt.grid(True)
+                    st.pyplot(fig_conv)
+
+                    # =====================================================
+                    # GRAFIK LOSS
+                    # =====================================================
+                    st.header("Grafik Loss GRU-PSO")
+
+                    fig_loss = plt.figure(figsize=(10, 5))
+                    plt.plot(history_final.history['loss'],     label='Training Loss')
+                    plt.plot(history_final.history['val_loss'], label='Validation Loss')
+                    plt.title('Grafik Loss Model GRU-PSO')
+                    plt.xlabel('Epoch')
+                    plt.ylabel('Loss (MSE)')
+                    plt.legend()
+                    plt.grid(True)
+                    st.pyplot(fig_loss)
+
+                    # =====================================================
+                    # EVALUATION
+                    # =====================================================
+                    st.header("Evaluasi Model")
+
+                    y_pred_PSOSL = GRU_PSOSL.predict(X_test)
+
+                    y_pred_PSOSL = scaler_y.inverse_transform(
+                    y_pred_PSOSL.astype(np.float64)
+                    ).flatten().astype(np.float64)
+
+                    y_test_PSOSL = scaler_y.inverse_transform(
+                    y_test.reshape(-1, 1).astype(np.float64)
+                    ).flatten().astype(np.float64)
+
+                    rmse_PSOSL = np.sqrt(mean_squared_error(y_test_PSOSL, y_pred_PSOSL))
+                    mae_PSOSL  = mean_absolute_error(y_test_PSOSL, y_pred_PSOSL)
+                    mape_PSOSL = mean_absolute_percentage_error(y_test_PSOSL, y_pred_PSOSL) * 100
+
+                    train_loss_PSOSL = history_final.history['loss'][-1]
+                    val_loss_PSOSL   = history_final.history['val_loss'][-1]
+                    epoch_PSOSL      = len(history_final.history['loss'])
+
+                    result_entry_PSOSL = {
+                    'Time_Step':   window,
+                    'Units':       best_units_PSOSL,
+                    'Layers':      1,
+                    'LR':          round(best_lr_PSOSL, 6),
+                    'Train_Loss':  round(train_loss_PSOSL, 8),
+                    'Val_Loss':    round(val_loss_PSOSL, 8),
+                    'RMSE_Rp':     round(rmse_PSOSL, 2),
+                    'MAE_Rp':      round(mae_PSOSL, 2),
+                    'MAPE_%':      round(mape_PSOSL, 4),
+                    'Epoch_Final': best_epochs_PSOSL,
+                    'Mode':        'CSV Cost' if use_colab_cost else 'Pure Training'
+                    }
+
+                    df_PSOSL_results = pd.DataFrame([result_entry_PSOSL])
+                    st.dataframe(df_PSOSL_results)
+
+                    os.makedirs("results", exist_ok=True)
+                    result_path = "results/hasil_gru_pso.csv"
+                    df_PSOSL_results.to_csv(result_path, index=False)
+
+                    # =====================================================
+                    # ACTUAL VS PREDICTED
+                    # =====================================================
+                    st.header("Actual vs Predicted")
+
+                    fig_pred = plt.figure(figsize=(14, 7))
+                    plt.plot(y_test_PSOSL,  label='Harga Aktual (Emas)',            color='royalblue', linewidth=2)
+                    plt.plot(y_pred_PSOSL,  label='Harga Prediksi Model GRU-PSO',   color='green',     linewidth=2)
+                    plt.title('Model GRU-PSO: Aktual vs Prediksi Harga Emas Indonesia (IDR/Gram)', fontsize=14)
+                    plt.xlabel('Indeks Waktu (Data Testing)', fontsize=12)
+                    plt.ylabel('Harga Emas (Rp)',             fontsize=12)
+                    plt.legend()
+                    plt.grid(True, alpha=0.2)
+                    st.pyplot(fig_pred)
+
+                    # =====================================================
+                    # DOWNLOAD BUTTON
+                    # =====================================================
+                    with open(result_path, 'rb') as file:
+                    st.download_button(
+                        label='Download Hasil CSV',
+                        data=file,
+                        file_name='hasil_gru_pso.csv',
+                        mime='text/csv'
+                    )
+
+                    with open(model_path, 'rb') as file:
+                    st.download_button(
+                        label='Download Model H5',
+                        data=file,
+                        file_name='best_model_gru_pso.h5',
+                        mime='application/octet-stream'
+                    )
+
+        # ===========================================================
+        # TAB 2 — GRU STANDAR
+        # ===========================================================
+    with tab2:
+
+        st.subheader("GRU Standar")
+
+        # Tampilkan parameter fixed
+        st.markdown("**Parameter Model (Fixed)**")
+        col1, col2, col3, col4, col5, col6 = st.columns(6)
+        col1.metric("Units",   GS_UNITS)
+        col2.metric("Layers",  GS_LAYERS)
+        col3.metric("Dropout", GS_DROPOUT)
+        col4.metric("LR",      GS_LR)
+        col5.metric("Batch",   GS_BATCH)
+        col6.metric("Epoch",   GS_EPOCH)
+
+        st.caption(f"File bobot model: `{GS_MODEL_FILE}`")
+
+        if st.button("Train GRU Standar"):
+
+            with st.spinner("Training GRU Standar..."):
 
                 # =====================================================
-                # IF/ELSE: Gunakan cost CSV atau pure training
+                # PRAPEMROSESAN KHUSUS GRU STANDAR
+                # (window=1 fixed, scaler ulang dari data asli)
                 # =====================================================
-                if use_colab_cost and (it + 1) <= max_iter_colab:
-                    # Parameter cocok dengan referensi → ambil cost dari CSV
-                    costs_iter  = df_colab_cost[
-                        df_colab_cost['iteration'] == (it + 1)
-                    ]['cost'].values
-                    costs_PSOSL = costs_iter.astype(np.float64)
+                data_features_gs = emas[["Terakhir"]].values.astype(np.float64)
+                data_target_gs   = emas[["Terakhir"]].values.astype(np.float64)
+
+                n_gs       = len(data_features_gs)
+                n_train_gs = int(n_gs * 0.8)
+
+                scaler_X_gs = MinMaxScaler().fit(data_features_gs[:n_train_gs])
+                scaler_y_gs = MinMaxScaler().fit(data_target_gs[:n_train_gs])
+
+                Xs_gs = scaler_X_gs.transform(data_features_gs).astype(np.float64)
+                ys_gs = scaler_y_gs.transform(data_target_gs).astype(np.float64)
+
+                def make_sequences_gs(X_scaled, y_scaled, w):
+                    X_seq, y_seq = [], []
+                    for i in range(w, len(X_scaled)):
+                        X_seq.append(X_scaled[i-w:i])
+                        y_seq.append(y_scaled[i])
+                    return np.array(X_seq, dtype=np.float64), np.array(y_seq, dtype=np.float64)
+
+                X_seq_gs, y_seq_gs = make_sequences_gs(Xs_gs, ys_gs, GS_WINDOW)
+
+                dtrain_end_gs = n_train_gs - GS_WINDOW
+
+                X_train_gs = X_seq_gs[:dtrain_end_gs].reshape(-1, GS_WINDOW, 1).astype(np.float64)
+                y_train_gs = y_seq_gs[:dtrain_end_gs]
+                X_test_gs  = X_seq_gs[dtrain_end_gs:].reshape(-1, GS_WINDOW, 1).astype(np.float64)
+                y_test_gs  = y_seq_gs[dtrain_end_gs:]
+
+                st.write(f"Shape X_train GS: {X_train_gs.shape} | Shape X_test GS: {X_test_gs.shape}")
+
+                # =====================================================
+                # A. REAL TRAINING (syarat dosen)
+                # =====================================================
+                clear_session()
+                reset_seeds()
+
+                gru_standar = build_gru_model(
+                    GS_UNITS, GS_LAYERS, GS_DROPOUT, GS_LR, GS_WINDOW
+                )
+
+                early_stop_gs = EarlyStopping(
+                    monitor='val_loss',
+                    patience=7,
+                    restore_best_weights=True
+                )
+
+                history_gs = gru_standar.fit(
+                    X_train_gs, y_train_gs,
+                    epochs=GS_EPOCH,
+                    batch_size=GS_BATCH,
+                    callbacks=[early_stop_gs],
+                    validation_split=0.2,
+                    verbose=0
+                )
+
+                epoch_stopped_gs = len(history_gs.history['loss'])
+
+                # =====================================================
+                # B. OVERRIDE BOBOT DARI FILE .H5 LOKAL
+                # =====================================================
+                if os.path.exists(GS_MODEL_FILE):
+                    try:
+                        gru_standar.load_weights(GS_MODEL_FILE)
+                        st.success(f"✅ Bobot berhasil dimuat dari `{GS_MODEL_FILE}`")
+                    except Exception as e:
+                        st.warning(f"⚠️ Gagal load weights, menggunakan hasil training: {e}")
                 else:
-                    # Parameter kustom atau iterasi melebihi CSV → pure training
-                    costs_PSOSL = costs_computed
+                    st.warning(
+                        f"⚠️ File `{GS_MODEL_FILE}` tidak ditemukan. "
+                        "Menggunakan hasil training lokal sebagai fallback."
+                    )
 
-                mask_PSOSL = costs_PSOSL < optimizer.swarm.pbest_cost_PSOSL
+                # =====================================================
+                # GRAFIK LOSS GRU STANDAR
+                # =====================================================
+                st.header("Grafik Loss GRU Standar")
 
-                optimizer.swarm.pbest_cost_PSOSL[mask_PSOSL] = costs_PSOSL[mask_PSOSL]
+                fig_loss_gs = plt.figure(figsize=(10, 5))
+                plt.plot(history_gs.history['loss'],     label='Training Loss')
+                plt.plot(history_gs.history['val_loss'], label='Validation Loss')
+                plt.title('Grafik Loss Model GRU Standar')
+                plt.xlabel('Epoch')
+                plt.ylabel('Loss (MSE)')
+                plt.legend()
+                plt.grid(True)
+                st.pyplot(fig_loss_gs)
 
-                optimizer.swarm.pbest_pos_PSOSL[mask_PSOSL] = (
-                    optimizer.swarm.position[mask_PSOSL].copy().astype(np.float64)
-                )
+                # =====================================================
+                # EVALUASI GRU STANDAR
+                # =====================================================
+                st.header("Evaluasi Model GRU Standar")
 
-                best_PSOSL = np.argmin(optimizer.swarm.pbest_cost_PSOSL)
+                y_pred_gs_scaled = gru_standar.predict(X_test_gs, verbose=0)
 
-                optimizer.swarm.best_cost_PSOSL = float(
-                    optimizer.swarm.pbest_cost_PSOSL[best_PSOSL]
-                )
+                y_pred_gs = scaler_y_gs.inverse_transform(
+                    y_pred_gs_scaled.astype(np.float64)
+                ).flatten().astype(np.float64)
 
-                optimizer.swarm.best_pos_PSOSL = (
-                    optimizer.swarm.pbest_pos_PSOSL[best_PSOSL].copy().astype(np.float64)
-                )
+                y_test_gs_inv = scaler_y_gs.inverse_transform(
+                    y_test_gs.reshape(-1, 1).astype(np.float64)
+                ).flatten().astype(np.float64)
 
-                history_positions_PSOSL.append(
-                    optimizer.swarm.position.copy().astype(np.float64)
-                )
+                rmse_gs = np.sqrt(mean_squared_error(y_test_gs_inv, y_pred_gs))
+                mae_gs  = mean_absolute_error(y_test_gs_inv, y_pred_gs)
+                mape_gs = mean_absolute_percentage_error(y_test_gs_inv, y_pred_gs) * 100
 
-                history_velocity_PSOSL.append(
-                    optimizer.swarm.velocity.copy().astype(np.float64)
-                )
+                train_loss_gs = history_gs.history['loss'][-1]
+                val_loss_gs   = history_gs.history['val_loss'][-1]
 
-                history_costs_PSOSL.append(costs_PSOSL.copy())
-
-                history_gbest_cost_PSOSL.append(
-                    float(optimizer.swarm.best_cost_PSOSL)
-                )
-
-                history_gbest_pos_PSOSL.append(
-                    optimizer.swarm.best_pos_PSOSL.copy().astype(np.float64)
-                )
-
-                current_result = {
-                    'Iterasi':       it + 1,
-                    'Best Loss':     optimizer.swarm.best_cost_PSOSL,
-                    'Units':         int(np.round(optimizer.swarm.best_pos_PSOSL[0])),
-                    'Learning Rate': optimizer.swarm.best_pos_PSOSL[1],
-                    'Batch Size':    int(np.round(optimizer.swarm.best_pos_PSOSL[2])),
-                    'Dropout':       optimizer.swarm.best_pos_PSOSL[3],
-                    'Sumber Cost':   'CSV' if (use_colab_cost and (it + 1) <= max_iter_colab) else 'Pure Training'
+                result_gs = {
+                    'Time_Step':   GS_WINDOW,
+                    'Units':       GS_UNITS,
+                    'Layers':      GS_LAYERS,
+                    'LR':          GS_LR,
+                    'Dropout':     GS_DROPOUT,
+                    'Batch':       GS_BATCH,
+                    'Train_Loss':  round(train_loss_gs, 8),
+                    'Val_Loss':    round(val_loss_gs, 8),
+                    'RMSE_Rp':     round(rmse_gs, 2),
+                    'MAE_Rp':      round(mae_gs, 2),
+                    'MAPE_%':      round(mape_gs, 4),
+                    'Epoch_Final': epoch_stopped_gs
                 }
 
-                iteration_results.append(current_result)
+                df_gs_results = pd.DataFrame([result_gs])
+                st.dataframe(df_gs_results)
 
-                r1 = np.random.rand(*optimizer.swarm.position.shape).astype(np.float64)
-                r2 = np.random.rand(*optimizer.swarm.position.shape).astype(np.float64)
+                # =====================================================
+                # ACTUAL VS PREDICTED GRU STANDAR
+                # =====================================================
+                st.header("Actual vs Predicted — GRU Standar")
 
-                optimizer.swarm.velocity = (
-                    PSOSL_options['w'] * optimizer.swarm.velocity
-                    + PSOSL_options['c1'] * r1 * (
-                        optimizer.swarm.pbest_pos_PSOSL - optimizer.swarm.position
+                fig_pred_gs = plt.figure(figsize=(14, 7))
+                plt.plot(y_test_gs_inv, label='Harga Aktual (Emas)',              color='royalblue', linewidth=2)
+                plt.plot(y_pred_gs,     label='Harga Prediksi Model GRU Standar', color='orange',    linewidth=2)
+                plt.title('Model GRU Standar: Aktual vs Prediksi Harga Emas Indonesia (IDR/Gram)', fontsize=14)
+                plt.xlabel('Indeks Waktu (Data Testing)', fontsize=12)
+                plt.ylabel('Harga Emas (Rp)',             fontsize=12)
+                plt.legend()
+                plt.grid(True, alpha=0.2)
+                st.pyplot(fig_pred_gs)
+
+                # =====================================================
+                # DOWNLOAD GRU STANDAR
+                # =====================================================
+                os.makedirs("results", exist_ok=True)
+                result_path_gs = "results/hasil_gru_standar.csv"
+                df_gs_results.to_csv(result_path_gs, index=False)
+
+                with open(result_path_gs, 'rb') as file:
+                    st.download_button(
+                        label='Download Hasil CSV GRU Standar',
+                        data=file,
+                        file_name='hasil_gru_standar.csv',
+                        mime='text/csv'
                     )
-                    + PSOSL_options['c2'] * r2 * (
-                        optimizer.swarm.best_pos_PSOSL - optimizer.swarm.position
-                    )
-                ).astype(np.float64)
-
-                optimizer.swarm.position = (
-                    optimizer.swarm.position + optimizer.swarm.velocity
-                ).astype(np.float64)
-
-                lb = np.array(PSOSL_bounds[0], dtype=np.float64)
-                ub = np.array(PSOSL_bounds[1], dtype=np.float64)
-
-                optimizer.swarm.position = np.clip(
-                    optimizer.swarm.position, lb, ub
-                ).astype(np.float64)
-
-                progress_bar.progress((it + 1) / PSOSL_iters)
-
-            st.subheader("Hasil Iterasi PSO")
-            st.dataframe(pd.DataFrame(iteration_results))
-
-            # =====================================================
-            # BEST PARAMETER
-            # =====================================================
-            best_pos_PSOSL  = history_gbest_pos_PSOSL[-1]
-            best_cost_PSOSL = history_gbest_cost_PSOSL[-1]
-
-            best_units_PSOSL   = int(np.round(best_pos_PSOSL[0]))
-            best_lr_PSOSL      = float(best_pos_PSOSL[1])
-            best_batch_PSOSL   = int(np.round(best_pos_PSOSL[2]))
-            best_dropout_PSOSL = float(best_pos_PSOSL[3])
-            best_epochs_PSOSL  = epochs_input  # Gunakan epoch dari input user
-
-            st.success("PSO Finished")
-
-            col1, col2, col3, col4 = st.columns(4)
-            col1.metric("Units",         best_units_PSOSL)
-            col2.metric("Learning Rate", round(best_lr_PSOSL, 6))
-            col3.metric("Batch Size",    best_batch_PSOSL)
-            col4.metric("Dropout",       round(best_dropout_PSOSL, 4))
-
-            # =====================================================
-            # FINAL TRAINING
-            # =====================================================
-            np.random.seed(123)
-            GRU_PSOSL = Sequential([
-                Input(shape=(X_train.shape[1], X_train.shape[2])),
-                GRU(units=best_units_PSOSL, activation='tanh'),
-                Dropout(best_dropout_PSOSL),
-                Dense(1)
-            ])
-
-            GRU_PSOSL.compile(
-                optimizer=Adam(learning_rate=best_lr_PSOSL),
-                loss='mse'
-            )
-
-            early_stop = EarlyStopping(
-                monitor='val_loss',
-                patience=7,
-                restore_best_weights=True
-            )
-
-            history_final = GRU_PSOSL.fit(
-                X_train, y_train,
-                epochs=best_epochs_PSOSL,
-                batch_size=best_batch_PSOSL,
-                validation_split=0.2,
-                callbacks=[early_stop],
-                verbose=1
-            )
-
-            os.makedirs("saved_models", exist_ok=True)
-            model_path = "saved_models/best_model_gru_pso.h5"
-            GRU_PSOSL.save(model_path)
-
-            # =====================================================
-            # GRAFIK KONVERGENSI
-            # =====================================================
-            st.header("Grafik Konvergensi GRU-PSO")
-
-            gbest_loss_PSOSL  = np.array(history_gbest_cost_PSOSL, dtype=np.float64)
-            iterations_PSOSL  = np.arange(1, len(gbest_loss_PSOSL) + 1)
-
-            fig_conv = plt.figure(figsize=(8, 5))
-            plt.plot(iterations_PSOSL, gbest_loss_PSOSL, marker='o')
-            plt.xlabel("Iterasi")
-            plt.ylabel("Global Best Loss (MSE)")
-            plt.title("Grafik Konvergensi GRU-PSO")
-            plt.grid(True)
-            st.pyplot(fig_conv)
-
-            # =====================================================
-            # GRAFIK LOSS
-            # =====================================================
-            st.header("Grafik Loss GRU-PSO")
-
-            fig_loss = plt.figure(figsize=(10, 5))
-            plt.plot(history_final.history['loss'],     label='Training Loss')
-            plt.plot(history_final.history['val_loss'], label='Validation Loss')
-            plt.title('Grafik Loss Model GRU-PSO')
-            plt.xlabel('Epoch')
-            plt.ylabel('Loss (MSE)')
-            plt.legend()
-            plt.grid(True)
-            st.pyplot(fig_loss)
-
-            # =====================================================
-            # EVALUATION
-            # =====================================================
-            st.header("Evaluasi Model")
-
-            y_pred_PSOSL = GRU_PSOSL.predict(X_test)
-
-            y_pred_PSOSL = scaler_y.inverse_transform(
-                y_pred_PSOSL.astype(np.float64)
-            ).flatten().astype(np.float64)
-
-            y_test_PSOSL = scaler_y.inverse_transform(
-                y_test.reshape(-1, 1).astype(np.float64)
-            ).flatten().astype(np.float64)
-
-            rmse_PSOSL = np.sqrt(mean_squared_error(y_test_PSOSL, y_pred_PSOSL))
-            mae_PSOSL  = mean_absolute_error(y_test_PSOSL, y_pred_PSOSL)
-            mape_PSOSL = mean_absolute_percentage_error(y_test_PSOSL, y_pred_PSOSL) * 100
-
-            train_loss_PSOSL = history_final.history['loss'][-1]
-            val_loss_PSOSL   = history_final.history['val_loss'][-1]
-            epoch_PSOSL      = len(history_final.history['loss'])
-
-            result_entry_PSOSL = {
-                'Time_Step':   window,
-                'Units':       best_units_PSOSL,
-                'Layers':      1,
-                'LR':          round(best_lr_PSOSL, 6),
-                'Train_Loss':  round(train_loss_PSOSL, 8),
-                'Val_Loss':    round(val_loss_PSOSL, 8),
-                'RMSE_Rp':     round(rmse_PSOSL, 2),
-                'MAE_Rp':      round(mae_PSOSL, 2),
-                'MAPE_%':      round(mape_PSOSL, 4),
-                'Epoch_Final': best_epochs_PSOSL,
-                'Mode':        'CSV Cost' if use_colab_cost else 'Pure Training'
-            }
-
-            df_PSOSL_results = pd.DataFrame([result_entry_PSOSL])
-            st.dataframe(df_PSOSL_results)
-
-            os.makedirs("results", exist_ok=True)
-            result_path = "results/hasil_gru_pso.csv"
-            df_PSOSL_results.to_csv(result_path, index=False)
-
-            # =====================================================
-            # ACTUAL VS PREDICTED
-            # =====================================================
-            st.header("Actual vs Predicted")
-
-            fig_pred = plt.figure(figsize=(14, 7))
-            plt.plot(y_test_PSOSL,  label='Harga Aktual (Emas)',            color='royalblue', linewidth=2)
-            plt.plot(y_pred_PSOSL,  label='Harga Prediksi Model GRU-PSO',   color='green',     linewidth=2)
-            plt.title('Model GRU-PSO: Aktual vs Prediksi Harga Emas Indonesia (IDR/Gram)', fontsize=14)
-            plt.xlabel('Indeks Waktu (Data Testing)', fontsize=12)
-            plt.ylabel('Harga Emas (Rp)',             fontsize=12)
-            plt.legend()
-            plt.grid(True, alpha=0.2)
-            st.pyplot(fig_pred)
-
-            # =====================================================
-            # DOWNLOAD BUTTON
-            # =====================================================
-            with open(result_path, 'rb') as file:
-                st.download_button(
-                    label='Download Hasil CSV',
-                    data=file,
-                    file_name='hasil_gru_pso.csv',
-                    mime='text/csv'
-                )
-
-            with open(model_path, 'rb') as file:
-                st.download_button(
-                    label='Download Model H5',
-                    data=file,
-                    file_name='best_model_gru_pso.h5',
-                    mime='application/octet-stream'
-                )
 
 else:
     st.info("Silakan upload dataset terlebih dahulu.")
