@@ -295,6 +295,7 @@ if uploaded_file is not None:
                         dropout = float(p[3])
                         
                         try:
+                            SEED=49
                             tf.random.set_seed(SEED)
                             random.seed(189)
                             clear_session()
