@@ -247,7 +247,7 @@ if uploaded_file is not None:
         if uploaded_log is not None:
             df_log = pd.read_csv(uploaded_log)
             # Ambil baris dengan cost terkecil
-            st_params = [best_row['Units'], best_row['LR'], best_row['Batch'], best_row['Dropout']]
+            st_params = [best_row['units'], best_row['lr'], best_row['batch'], best_row['dropout']]
             # Contoh penyesuaian:
             best_row = df_log.loc[df_log['cost'].idxmin()] # Sesuaikan 'cost'
             best_params = [
