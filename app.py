@@ -166,10 +166,10 @@ if uploaded_file is not None:
     feature_cols = ["Terakhir"]
     target_col = "Terakhir"
 
-    data_features = emas[feature_cols].values
-    data_target = emas[[target_col]].values
+    data_features = emas[feature_cols].values.astype(np.float64)
+    data_target = emas[[target_col]].values.astype(np.float64)
 
-    values = emas[['Terakhir']].values
+    values = emas[['Terakhir']].values.astype(np.float64)
 
     n = len(values)
     n_train = int(n * 0.8)
@@ -190,8 +190,8 @@ if uploaded_file is not None:
     scaler_X = MinMaxScaler().fit(data_features[:n_train])
     scaler_y = MinMaxScaler().fit(data_target[:n_train])
 
-    Xs = scaler_X.transform(data_features)
-    ys = scaler_y.transform(data_target)
+    Xs = scaler_X.transform(data_features).astype(np.float64)
+    ys = scaler_y.transform(data_target).astype(np.float64)
 
     scaled_df = pd.DataFrame({
         'Scaled_X': Xs.flatten(),
@@ -212,7 +212,7 @@ if uploaded_file is not None:
             X_seq.append(X_scaled[i-window:i])
             y_seq.append(y_scaled[i])
 
-        return np.array(X_seq), np.array(y_seq)
+        return np.array(X_seq, dtype=np.float64), np.array(y_seq, dtype=np.float64)
 
     X_seq_all, y_seq_all = make_sequences(Xs, ys, window=window)
 
@@ -224,8 +224,8 @@ if uploaded_file is not None:
     X_test = X_seq_all[dtrain_end:]
     y_test = y_seq_all[dtrain_end:]
 
-    X_train = X_train.reshape((X_train.shape[0], X_train.shape[1], 1))
-    X_test = X_test.reshape((X_test.shape[0], X_test.shape[1], 1))
+    X_train = X_train.reshape((X_train.shape[0], X_train.shape[1], 1)).astype(np.float64)
+    X_test = X_test.reshape((X_test.shape[0], X_test.shape[1], 1)).astype(np.float64)
 
     st.write(f"Shape X_train: {X_train.shape}")
     st.write(f"Shape X_test: {X_test.shape}")
@@ -266,8 +266,9 @@ if uploaded_file is not None:
 
                 def obj_fn(particles):
 
+                    particles = particles.astype(np.float64)
                     n_particles = particles.shape[0]
-                    costs = np.zeros(n_particles)
+                    costs = np.zeros(n_particles, dtype=np.float64)
 
                     for i, p in enumerate(particles):
 
@@ -305,11 +306,13 @@ if uploaded_file is not None:
 
                             yv_pred = model.predict(X_va, verbose=0)
 
-                            yv_pred_orig = scaler_y.inverse_transform(yv_pred).flatten()
+                            yv_pred_orig = scaler_y.inverse_transform(
+                                yv_pred.astype(np.float64)
+                            ).flatten().astype(np.float64)
 
                             yv_true_orig = scaler_y.inverse_transform(
-                                y_va.reshape(-1, 1)
-                            ).flatten()
+                                y_va.reshape(-1, 1).astype(np.float64)
+                            ).flatten().astype(np.float64)
 
                             costs[i] = mean_squared_error(
                                 yv_true_orig,
@@ -344,8 +347,8 @@ if uploaded_file is not None:
 
             n_particles, dims = optimizer.swarm.position.shape
 
-            optimizer.swarm.pbest_pos_PSOSL = optimizer.swarm.position.copy()
-            optimizer.swarm.pbest_cost_PSOSL = np.full(n_particles, np.inf)
+            optimizer.swarm.pbest_pos_PSOSL = optimizer.swarm.position.copy().astype(np.float64)
+            optimizer.swarm.pbest_cost_PSOSL = np.full(n_particles, np.inf, dtype=np.float64)
 
             history_positions_PSOSL = []
             history_velocity_PSOSL = []
@@ -366,32 +369,32 @@ if uploaded_file is not None:
             
             for it in range(PSOSL_iters):
 
-                costs_PSOSL = pso_obj_PSOSL(optimizer.swarm.position)
+                costs_PSOSL = pso_obj_PSOSL(optimizer.swarm.position).astype(np.float64)
 
                 mask_PSOSL = costs_PSOSL < optimizer.swarm.pbest_cost_PSOSL
 
                 optimizer.swarm.pbest_cost_PSOSL[mask_PSOSL] = costs_PSOSL[mask_PSOSL]
 
                 optimizer.swarm.pbest_pos_PSOSL[mask_PSOSL] = (
-                    optimizer.swarm.position[mask_PSOSL].copy()
+                    optimizer.swarm.position[mask_PSOSL].copy().astype(np.float64)
                 )
 
                 best_PSOSL = np.argmin(optimizer.swarm.pbest_cost_PSOSL)
 
-                optimizer.swarm.best_cost_PSOSL = (
+                optimizer.swarm.best_cost_PSOSL = float(
                     optimizer.swarm.pbest_cost_PSOSL[best_PSOSL]
                 )
 
                 optimizer.swarm.best_pos_PSOSL = (
-                    optimizer.swarm.pbest_pos_PSOSL[best_PSOSL].copy()
+                    optimizer.swarm.pbest_pos_PSOSL[best_PSOSL].copy().astype(np.float64)
                 )
 
                 history_positions_PSOSL.append(
-                    optimizer.swarm.position.copy()
+                    optimizer.swarm.position.copy().astype(np.float64)
                 )
 
                 history_velocity_PSOSL.append(
-                    optimizer.swarm.velocity.copy()
+                    optimizer.swarm.velocity.copy().astype(np.float64)
                 )
 
                 history_costs_PSOSL.append(costs_PSOSL.copy())
@@ -401,7 +404,7 @@ if uploaded_file is not None:
                 )
 
                 history_gbest_pos_PSOSL.append(
-                    optimizer.swarm.best_pos_PSOSL.copy()
+                    optimizer.swarm.best_pos_PSOSL.copy().astype(np.float64)
                 )
 
                 current_result = {
@@ -415,8 +418,8 @@ if uploaded_file is not None:
 
                 iteration_results.append(current_result)
 
-                r1 = np.random.rand(*optimizer.swarm.position.shape)
-                r2 = np.random.rand(*optimizer.swarm.position.shape)
+                r1 = np.random.rand(*optimizer.swarm.position.shape).astype(np.float64)
+                r2 = np.random.rand(*optimizer.swarm.position.shape).astype(np.float64)
 
                 optimizer.swarm.velocity = (
                     PSOSL_options['w'] * optimizer.swarm.velocity
@@ -426,17 +429,19 @@ if uploaded_file is not None:
                     + PSOSL_options['c2'] * r2 * (
                         optimizer.swarm.best_pos_PSOSL - optimizer.swarm.position
                     )
-                )
+                ).astype(np.float64)
 
-                optimizer.swarm.position += optimizer.swarm.velocity
+                optimizer.swarm.position = (
+                    optimizer.swarm.position + optimizer.swarm.velocity
+                ).astype(np.float64)
 
-                lb, ub = np.array(PSOSL_bounds[0]), np.array(PSOSL_bounds[1])
+                lb, ub = np.array(PSOSL_bounds[0], dtype=np.float64), np.array(PSOSL_bounds[1], dtype=np.float64)
 
                 optimizer.swarm.position = np.clip(
                     optimizer.swarm.position,
                     lb,
                     ub
-                )
+                ).astype(np.float64)
 
                 progress_bar.progress((it + 1) / PSOSL_iters)
 
@@ -512,7 +517,7 @@ if uploaded_file is not None:
             # =====================================================
             st.header("Grafik Konvergensi GRU-PSO")
 
-            gbest_loss_PSOSL = np.array(history_gbest_cost_PSOSL)
+            gbest_loss_PSOSL = np.array(history_gbest_cost_PSOSL, dtype=np.float64)
 
             iterations_PSOSL = np.arange(
                 1,
@@ -567,12 +572,12 @@ if uploaded_file is not None:
             y_pred_PSOSL = GRU_PSOSL.predict(X_test)
 
             y_pred_PSOSL = scaler_y.inverse_transform(
-                y_pred_PSOSL
-            ).flatten()
+                y_pred_PSOSL.astype(np.float64)
+            ).flatten().astype(np.float64)
 
             y_test_PSOSL = scaler_y.inverse_transform(
-                y_test.reshape(-1, 1)
-            ).flatten()
+                y_test.reshape(-1, 1).astype(np.float64)
+            ).flatten().astype(np.float64)
 
             rmse_PSOSL = np.sqrt(mean_squared_error(
                 y_test_PSOSL,
