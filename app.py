@@ -56,11 +56,11 @@ GITHUB_COST_URL = "https://raw.githubusercontent.com/rhenaash/skripthings/main/L
 
 @st.cache_data
 def load_colab_costs():
-    response = requests.get(GITHUB_COST_URL)
+    token = st.secrets["GITHUB_TOKEN"]
+    headers = {"Authorization": f"token {token}"}
+    response = requests.get(GITHUB_COST_URL, headers=headers)
     df = pd.read_csv(io.StringIO(response.text))
-    return df
-
-df_colab_cost = load_colab_costs()
+return df
 
 # =====================================================
 # SIDEBAR
