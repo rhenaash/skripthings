@@ -97,6 +97,8 @@ uploaded_file = st.file_uploader(
     type=['csv', 'xlsx']
 )
 
+uploaded_log = st.sidebar.file_uploader("Upload Log Partikel (Opsional)", type=['csv'])
+
 # =====================================================
 # LOAD DATA
 # =====================================================
@@ -235,15 +237,26 @@ if uploaded_file is not None:
     # =====================================================
     if st.button("Train GRU-PSO"):
 
-        with st.spinner("Training Model..."):
+        PSOSL_bounds = (
+                [16, 0.0001, 16, 0.01],
+                [128, 0.01, 128, 0.5]
+        )
+        
+    # 1. Injeksi Parameter
+        init_pos = None
+        if uploaded_log is not None:
+            df_log = pd.read_csv(uploaded_log)
+            # Ambil baris dengan cost terkecil
+            best_row = df_log.loc[df_log['Cost'].idxmin()] 
+            best_params = [best_row['Units'], best_row['LR'], best_row['Batch'], best_row['Dropout']]
+            init_pos = np.array([best_params for _ in range(PSOSL_particles)])
+            st.info(f"Injeksi berhasil! PSO mulai dari: {best_params}")
+    
+            with st.spinner("Training Model..."):
 
             # =====================================================
             # PSO CONFIG
             # =====================================================
-            PSOSL_bounds = (
-                [16, 0.0001, 16, 0.01],
-                [128, 0.01, 128, 0.5]
-            )
 
             val_PSOSL = 0.2
 
@@ -341,6 +354,9 @@ if uploaded_file is not None:
                 options=PSOSL_options,
                 bounds=PSOSL_bounds
             )
+
+            if init_pos is not None:
+            optimizer.swarm.position = init_pos
 
             n_particles, dims = optimizer.swarm.position.shape
 
