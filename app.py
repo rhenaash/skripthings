@@ -114,6 +114,14 @@ st.set_page_config(
 st.title("GRU-PSO Forecasting Harga Emas")
 
 # =====================================================
+# INISIALISASI SESSION STATE
+# =====================================================
+if 'result_pso' not in st.session_state:
+    st.session_state['result_pso'] = None   # dict: y_test, y_pred, mape, model, scaler_y, Xs, window, emas
+if 'result_gs' not in st.session_state:
+    st.session_state['result_gs'] = None    # dict: y_test, y_pred, mape, model, scaler_y, Xs, window, emas
+
+# =====================================================
 # LOAD COLAB COSTS FROM GITHUB
 # =====================================================
 GITHUB_COST_URL = "https://raw.githubusercontent.com/rhenaash/skripthings/main/Log%20Partikel%20SL%20%28TW%29%20Timestep%20--%201%20CB.csv"
@@ -354,10 +362,15 @@ if uploaded_file is not None:
     # =====================================================
     # TAB PEMODELAN
     # =====================================================
-    tab1, tab2 = st.tabs(["🔵 GRU-PSO", "🟢 GRU Standar"])
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "🔵 GRU-PSO",
+        "🟢 GRU Standar",
+        "📊 Perbandingan Model",
+        "🔮 Prediksi ke Depan"
+    ])
 
     # ===========================================================
-    # TAB 1 — GRU-PSO (struktur tidak berubah sama sekali)
+    # TAB 1 — GRU-PSO
     # ===========================================================
     with tab1:
 
@@ -492,9 +505,6 @@ if uploaded_file is not None:
 
                     costs_computed = pso_obj_PSOSL(optimizer.swarm.position).astype(np.float64)
 
-                    # =====================================================
-                    # IF/ELSE: Gunakan cost CSV atau pure training
-                    # =====================================================
                     if use_colab_cost and (it + 1) <= max_iter_colab:
                         costs_iter  = df_colab_cost[
                             df_colab_cost['iteration'] == (it + 1)
@@ -726,6 +736,20 @@ if uploaded_file is not None:
                 st.pyplot(fig_pred)
 
                 # =====================================================
+                # SIMPAN KE SESSION STATE
+                # =====================================================
+                st.session_state['result_pso'] = {
+                    'y_test':   y_test_PSOSL,
+                    'y_pred':   y_pred_PSOSL,
+                    'mape':     mape_PSOSL,
+                    'model':    GRU_PSOSL,
+                    'scaler_y': scaler_y,
+                    'Xs':       Xs,
+                    'window':   window,
+                    'emas':     emas
+                }
+
+                # =====================================================
                 # DOWNLOAD BUTTON
                 # =====================================================
                 with open(result_path, 'rb') as file:
@@ -768,7 +792,6 @@ if uploaded_file is not None:
 
                 # =====================================================
                 # PRAPEMROSESAN KHUSUS GRU STANDAR
-                # (window=1 fixed, scaler ulang dari data asli)
                 # =====================================================
                 data_features_gs = emas[["Terakhir"]].values.astype(np.float64)
                 data_target_gs   = emas[["Terakhir"]].values.astype(np.float64)
@@ -801,7 +824,7 @@ if uploaded_file is not None:
                 st.write(f"Shape X_train GS: {X_train_gs.shape} | Shape X_test GS: {X_test_gs.shape}")
 
                 # =====================================================
-                # A. REAL TRAINING (syarat dosen)
+                # A. REAL TRAINING
                 # =====================================================
                 clear_session()
                 reset_seeds()
@@ -913,6 +936,20 @@ if uploaded_file is not None:
                 st.pyplot(fig_pred_gs)
 
                 # =====================================================
+                # SIMPAN KE SESSION STATE
+                # =====================================================
+                st.session_state['result_gs'] = {
+                    'y_test':   y_test_gs_inv,
+                    'y_pred':   y_pred_gs,
+                    'mape':     mape_gs,
+                    'model':    gru_standar,
+                    'scaler_y': scaler_y_gs,
+                    'Xs':       Xs_gs,
+                    'window':   GS_WINDOW,
+                    'emas':     emas
+                }
+
+                # =====================================================
                 # DOWNLOAD GRU STANDAR
                 # =====================================================
                 os.makedirs("results", exist_ok=True)
@@ -924,6 +961,253 @@ if uploaded_file is not None:
                         label='Download Hasil CSV GRU Standar',
                         data=file,
                         file_name='hasil_gru_standar.csv',
+                        mime='text/csv'
+                    )
+
+    # ===========================================================
+    # TAB 3 — PERBANDINGAN MODEL
+    # ===========================================================
+    with tab3:
+
+        st.header("📊 Perbandingan Model GRU-PSO vs GRU Standar")
+
+        res_pso = st.session_state.get('result_pso')
+        res_gs  = st.session_state.get('result_gs')
+
+        if res_pso is None and res_gs is None:
+            st.info("Belum ada model yang selesai dilatih. Silakan latih minimal satu model terlebih dahulu.")
+        else:
+            # =====================================================
+            # GRAFIK PERBANDINGAN KURVA
+            # =====================================================
+            st.subheader("Kurva Aktual vs Prediksi (Semua Model)")
+
+            # Tentukan acuan panjang y_test dari model yang tersedia
+            if res_pso is not None and res_gs is not None:
+                min_len = min(len(res_pso['y_test']), len(res_gs['y_test']))
+            elif res_pso is not None:
+                min_len = len(res_pso['y_test'])
+            else:
+                min_len = len(res_gs['y_test'])
+
+            fig_cmp, ax = plt.subplots(figsize=(14, 7))
+
+            # Kurva aktual — ambil dari model mana saja yang tersedia
+            if res_pso is not None:
+                ax.plot(
+                    res_pso['y_test'][:min_len],
+                    label='Harga Aktual',
+                    color='royalblue',
+                    linewidth=2.5
+                )
+            else:
+                ax.plot(
+                    res_gs['y_test'][:min_len],
+                    label='Harga Aktual',
+                    color='royalblue',
+                    linewidth=2.5
+                )
+
+            if res_pso is not None:
+                ax.plot(
+                    res_pso['y_pred'][:min_len],
+                    label='Prediksi GRU-PSO',
+                    color='green',
+                    linewidth=2,
+                    linestyle='--'
+                )
+
+            if res_gs is not None:
+                ax.plot(
+                    res_gs['y_pred'][:min_len],
+                    label='Prediksi GRU Standar',
+                    color='orange',
+                    linewidth=2,
+                    linestyle='-.'
+                )
+
+            ax.set_title('Perbandingan Aktual vs Prediksi: GRU-PSO & GRU Standar', fontsize=14)
+            ax.set_xlabel('Indeks Waktu (Data Testing)', fontsize=12)
+            ax.set_ylabel('Harga Emas (Rp)', fontsize=12)
+            ax.legend()
+            ax.grid(True, alpha=0.2)
+            st.pyplot(fig_cmp)
+
+            # =====================================================
+            # TABEL PERBANDINGAN METRIK
+            # =====================================================
+            st.subheader("Tabel Perbandingan Metrik Evaluasi")
+
+            rows = []
+            if res_pso is not None:
+                rmse_p = np.sqrt(mean_squared_error(res_pso['y_test'], res_pso['y_pred']))
+                mae_p  = mean_absolute_error(res_pso['y_test'], res_pso['y_pred'])
+                rows.append({
+                    'Model':   'GRU-PSO',
+                    'RMSE':    round(rmse_p, 2),
+                    'MAE':     round(mae_p, 2),
+                    'MAPE (%)': round(res_pso['mape'], 4)
+                })
+            if res_gs is not None:
+                rmse_g = np.sqrt(mean_squared_error(res_gs['y_test'], res_gs['y_pred']))
+                mae_g  = mean_absolute_error(res_gs['y_test'], res_gs['y_pred'])
+                rows.append({
+                    'Model':   'GRU Standar',
+                    'RMSE':    round(rmse_g, 2),
+                    'MAE':     round(mae_g, 2),
+                    'MAPE (%)': round(res_gs['mape'], 4)
+                })
+
+            df_cmp = pd.DataFrame(rows)
+            st.dataframe(df_cmp, use_container_width=True)
+
+            if len(rows) == 2:
+                best_model_name = df_cmp.loc[df_cmp['MAPE (%)'].idxmin(), 'Model']
+                st.success(f"🏆 Model terbaik berdasarkan MAPE terkecil: **{best_model_name}**")
+
+    # ===========================================================
+    # TAB 4 — PREDIKSI KE DEPAN
+    # ===========================================================
+    with tab4:
+
+        st.header("🔮 Prediksi 5 Periode ke Depan")
+
+        res_pso = st.session_state.get('result_pso')
+        res_gs  = st.session_state.get('result_gs')
+
+        if res_pso is None and res_gs is None:
+            st.info("Belum ada model yang selesai dilatih. Silakan latih minimal satu model terlebih dahulu.")
+        else:
+            # =====================================================
+            # PILIH MODEL TERBAIK BERDASARKAN MAPE
+            # =====================================================
+            if res_pso is not None and res_gs is not None:
+                if res_pso['mape'] <= res_gs['mape']:
+                    best_res        = res_pso
+                    best_model_name = "GRU-PSO"
+                else:
+                    best_res        = res_gs
+                    best_model_name = "GRU Standar"
+            elif res_pso is not None:
+                best_res        = res_pso
+                best_model_name = "GRU-PSO"
+            else:
+                best_res        = res_gs
+                best_model_name = "GRU Standar"
+
+            st.info(f"Model yang digunakan untuk prediksi: **{best_model_name}** (MAPE: {round(best_res['mape'], 4)}%)")
+
+            n_future = st.number_input(
+                "Jumlah Periode ke Depan",
+                min_value=1,
+                max_value=30,
+                value=5,
+                step=1
+            )
+
+            if st.button("Prediksi ke Depan"):
+
+                model_fwd    = best_res['model']
+                scaler_y_fwd = best_res['scaler_y']
+                Xs_fwd       = best_res['Xs']
+                win_fwd      = best_res['window']
+                emas_fwd     = best_res['emas']
+
+                # Ambil window terakhir dari data scaled sebagai seed prediksi
+                last_window = Xs_fwd[-win_fwd:].reshape(1, win_fwd, 1).astype(np.float64)
+
+                future_scaled = []
+                current_input = last_window.copy()
+
+                for _ in range(n_future):
+                    pred_scaled = model_fwd.predict(current_input, verbose=0)
+                    future_scaled.append(float(pred_scaled[0, 0]))
+                    # Geser window: buang elemen pertama, tambahkan prediksi baru
+                    new_val      = pred_scaled[0, 0].reshape(1, 1, 1).astype(np.float64)
+                    current_input = np.concatenate(
+                        [current_input[:, 1:, :], new_val],
+                        axis=1
+                    )
+
+                future_preds = scaler_y_fwd.inverse_transform(
+                    np.array(future_scaled, dtype=np.float64).reshape(-1, 1)
+                ).flatten()
+
+                # =====================================================
+                # KURVA HISTORIS + PREDIKSI DISAMBUNG
+                # =====================================================
+                hist_values = emas_fwd['Terakhir'].values.astype(np.float64)
+                n_hist      = len(hist_values)
+
+                # Index untuk x-axis
+                x_hist   = np.arange(n_hist)
+                x_future = np.arange(n_hist - 1, n_hist - 1 + n_future + 1)
+                # Sambungkan: titik terakhir historis + prediksi
+                y_future_plot = np.concatenate([[hist_values[-1]], future_preds])
+
+                fig_fwd, ax_fwd = plt.subplots(figsize=(14, 7))
+
+                ax_fwd.plot(
+                    x_hist,
+                    hist_values,
+                    label='Data Historis Harga Emas',
+                    color='royalblue',
+                    linewidth=2
+                )
+                ax_fwd.plot(
+                    x_future,
+                    y_future_plot,
+                    label=f'Prediksi {n_future} Periode ke Depan ({best_model_name})',
+                    color='crimson',
+                    linewidth=2.5,
+                    linestyle='--',
+                    marker='o',
+                    markersize=6
+                )
+                # Garis vertikal pemisah historis–prediksi
+                ax_fwd.axvline(
+                    x=n_hist - 1,
+                    color='gray',
+                    linestyle=':',
+                    linewidth=1.5,
+                    label='Batas Data Historis'
+                )
+
+                ax_fwd.set_title(
+                    f'Harga Emas: Historis & Prediksi {n_future} Periode ke Depan\n(Model: {best_model_name})',
+                    fontsize=14
+                )
+                ax_fwd.set_xlabel('Indeks Waktu', fontsize=12)
+                ax_fwd.set_ylabel('Harga Emas (Rp)', fontsize=12)
+                ax_fwd.legend()
+                ax_fwd.grid(True, alpha=0.2)
+                st.pyplot(fig_fwd)
+
+                # =====================================================
+                # TABEL HASIL PREDIKSI
+                # =====================================================
+                st.subheader(f"Tabel Prediksi {n_future} Periode ke Depan")
+
+                df_future = pd.DataFrame({
+                    'Periode ke-': np.arange(1, n_future + 1),
+                    f'Prediksi Harga Emas (Rp) — {best_model_name}': [
+                        f"{v:,.2f}" for v in future_preds
+                    ]
+                })
+                st.dataframe(df_future, use_container_width=True)
+
+                # =====================================================
+                # DOWNLOAD PREDIKSI
+                # =====================================================
+                os.makedirs("results", exist_ok=True)
+                path_future = "results/prediksi_ke_depan.csv"
+                df_future.to_csv(path_future, index=False)
+
+                with open(path_future, 'rb') as file:
+                    st.download_button(
+                        label='Download Prediksi CSV',
+                        data=file,
+                        file_name='prediksi_ke_depan.csv',
                         mime='text/csv'
                     )
 
