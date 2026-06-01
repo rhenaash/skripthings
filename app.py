@@ -281,7 +281,7 @@ if uploaded_file is not None:
                             SEED=49
                             tf.random.set_seed(SEED)
                             np.random.seed(SEED)
-                            random.seed(SEED)
+                            random.seed(189)
                         
                             model = Sequential([
                                 Input(shape=(X_tr.shape[1], X_tr.shape[2])),
