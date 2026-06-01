@@ -1,5 +1,3 @@
-bisa kah kamu menambahkan perintah loggingnya tanpa mengubah struktur syntax yg sudah ada? agar tetap identik dengan struktur gcolab
-
 import os
 import gc
 import random
