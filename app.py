@@ -368,6 +368,7 @@ if uploaded_file is not None:
             # =====================================================
             # LOOP PSO
             # =====================================================
+            SEED=49
             np.random.seed(SEED)
             random.seed(SEED)
             tf.random.set_seed(SEED)
