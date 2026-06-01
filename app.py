@@ -113,6 +113,7 @@ if uploaded_file is not None:
         emas = pd.read_excel(uploaded_file)
 
     if uploaded_log is not None:
+        uploaded_log.seek(0)
         df_log = pd.read_csv(uploaded_log)
     else:
         df_log = None
@@ -249,9 +250,7 @@ if uploaded_file is not None:
 
         # 1. Injeksi Parameter
         init_pos = None
-        if uploaded_log is not None:
-            df_log = pd.read_csv(uploaded_log)
-
+        if df_log is not None:
             best_row = df_log.loc[df_log['cost'].idxmin()]
             best_params = [
                 best_row['units'],
