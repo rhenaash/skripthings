@@ -415,7 +415,9 @@ else:
                         'Batch': int(np.round(optimizer.swarm.position[p_idx][2])),
                         'Dropout': float(optimizer.swarm.position[p_idx][3]),
                         'Cost': costs_PSOSL[p_idx]
-                    })                mask_PSOSL = costs_PSOSL < optimizer.swarm.pbest_cost_PSOSL
+                    })                
+                    
+                mask_PSOSL = costs_PSOSL < optimizer.swarm.pbest_cost_PSOSL
 
                 optimizer.swarm.pbest_cost_PSOSL[mask_PSOSL] = costs_PSOSL[mask_PSOSL]
 
