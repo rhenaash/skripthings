@@ -40,6 +40,23 @@ from tensorflow.keras.backend import clear_session
 from pyswarms.single.global_best import GlobalBestPSO
 
 # =====================================================
+# KONFIGURASI REFERENSI (tidak diubah)
+# =====================================================
+REF_TIMESTEP        = 1
+REF_UNIT_MIN        = 16
+REF_UNIT_MAX        = 128
+REF_BATCH_MIN       = 16
+REF_BATCH_MAX       = 128
+REF_LR_MIN          = 0.0001
+REF_LR_MAX          = 0.01
+REF_DROPOUT_MIN     = 0.01
+REF_DROPOUT_MAX     = 0.5
+REF_EPOCH           = 50
+REF_PARTICLES       = 40
+REF_ITER_MIN        = 1
+REF_ITER_MAX        = 10
+
+# =====================================================
 # CONFIG PAGE
 # =====================================================
 st.set_page_config(
@@ -69,8 +86,9 @@ df_colab_cost = load_colab_costs()
 # =====================================================
 st.sidebar.header("Konfigurasi Model")
 
+# --- Parameter lama ---
 window = st.sidebar.number_input(
-    "Window Size",
+    "Window Size (Timestep)",
     min_value=1,
     value=1,
     step=1
@@ -79,35 +97,95 @@ window = st.sidebar.number_input(
 PSOSL_particles = st.sidebar.number_input(
     "Jumlah Partikel",
     min_value=1,
-    value=18
+    value=40
 )
 
 PSOSL_iters = st.sidebar.number_input(
     "Jumlah Iterasi",
-    min_value=1,
-    value=5
+    min_value=REF_ITER_MIN,
+    max_value=REF_ITER_MAX,
+    value=5,
+    step=1
 )
 
-c1 = st.sidebar.number_input(
-    "c1",
-    value=2.0
+c1 = st.sidebar.number_input("c1", value=2.0)
+c2 = st.sidebar.number_input("c2", value=2.0)
+w  = st.sidebar.number_input("w",  value=0.7)
+
+PSOSL_options = {'c1': c1, 'c2': c2, 'w': w}
+
+st.sidebar.markdown("---")
+st.sidebar.subheader("Range Parameter PSO")
+
+# --- Parameter baru: range unit ---
+col_unit = st.sidebar.columns(2)
+unit_min = col_unit[0].number_input("Unit Min", min_value=1,  value=16,  step=1)
+unit_max = col_unit[1].number_input("Unit Max", min_value=1,  value=128, step=1)
+
+# --- Parameter baru: range batch ---
+col_batch = st.sidebar.columns(2)
+batch_min = col_batch[0].number_input("Batch Min", min_value=1,  value=16,  step=1)
+batch_max = col_batch[1].number_input("Batch Max", min_value=1,  value=128, step=1)
+
+# --- Parameter baru: range lr ---
+col_lr = st.sidebar.columns(2)
+lr_min = col_lr[0].number_input("LR Min", min_value=0.00001, value=0.0001, format="%.5f", step=0.00001)
+lr_max = col_lr[1].number_input("LR Max", min_value=0.00001, value=0.01,   format="%.5f", step=0.00001)
+
+# --- Parameter baru: range dropout ---
+col_do = st.sidebar.columns(2)
+dropout_min = col_do[0].number_input("Dropout Min", min_value=0.0, value=0.01, format="%.3f", step=0.001)
+dropout_max = col_do[1].number_input("Dropout Max", min_value=0.0, value=0.5,  format="%.3f", step=0.001)
+
+# --- Parameter baru: epoch ---
+epochs_input = st.sidebar.number_input("Epoch Final", min_value=1, value=50, step=1)
+
+# =====================================================
+# CEK APAKAH PARAMETER COCOK DENGAN KONFIGURASI REFERENSI
+# =====================================================
+def is_ref_config(
+    window, PSOSL_particles, PSOSL_iters,
+    unit_min, unit_max,
+    batch_min, batch_max,
+    lr_min, lr_max,
+    dropout_min, dropout_max,
+    epochs_input
+):
+    return (
+        window        == REF_TIMESTEP      and
+        PSOSL_particles == REF_PARTICLES   and
+        REF_ITER_MIN  <= PSOSL_iters <= REF_ITER_MAX and
+        unit_min      == REF_UNIT_MIN      and
+        unit_max      == REF_UNIT_MAX      and
+        batch_min     == REF_BATCH_MIN     and
+        batch_max     == REF_BATCH_MAX     and
+        abs(lr_min    - REF_LR_MIN)    < 1e-7 and
+        abs(lr_max    - REF_LR_MAX)    < 1e-7 and
+        abs(dropout_min - REF_DROPOUT_MIN) < 1e-7 and
+        abs(dropout_max - REF_DROPOUT_MAX) < 1e-7 and
+        epochs_input  == REF_EPOCH
+    )
+
+use_colab_cost = is_ref_config(
+    window, PSOSL_particles, PSOSL_iters,
+    unit_min, unit_max,
+    batch_min, batch_max,
+    lr_min, lr_max,
+    dropout_min, dropout_max,
+    epochs_input
 )
 
-c2 = st.sidebar.number_input(
-    "c2",
-    value=2.0
-)
+# Tampilkan mode aktif di sidebar
+if use_colab_cost:
+    st.sidebar.success("✅ Mode: Gunakan Cost CSV (Konfigurasi Referensi Cocok)")
+else:
+    st.sidebar.warning("⚙️ Mode: Pure Training (Konfigurasi Kustom)")
 
-w = st.sidebar.number_input(
-    "w",
-    value=0.7
+# Bangun bounds dari input user
+PSOSL_bounds = (
+    [float(unit_min), float(lr_min),  float(batch_min), float(dropout_min)],
+    [float(unit_max), float(lr_max),  float(batch_max), float(dropout_max)]
 )
-
-PSOSL_options = {
-    'c1': c1,
-    'c2': c2,
-    'w': w
-}
 
 uploaded_file = st.file_uploader(
     "Upload Dataset",
@@ -123,7 +201,6 @@ if uploaded_file is not None:
 
     if file_extension == 'csv':
         emas = pd.read_csv(uploaded_file)
-
     elif file_extension == 'xlsx':
         emas = pd.read_excel(uploaded_file)
 
@@ -181,23 +258,21 @@ if uploaded_file is not None:
     st.header("Split Data")
 
     feature_cols = ["Terakhir"]
-    target_col = "Terakhir"
+    target_col   = "Terakhir"
 
     data_features = emas[feature_cols].values.astype(np.float64)
-    data_target = emas[[target_col]].values.astype(np.float64)
+    data_target   = emas[[target_col]].values.astype(np.float64)
 
-    values = emas[['Terakhir']].values.astype(np.float64)
-
-    n = len(values)
+    values  = emas[['Terakhir']].values.astype(np.float64)
+    n       = len(values)
     n_train = int(n * 0.8)
 
     train_values = values[:n_train]
-    test_values = values[n_train:]
+    test_values  = values[n_train:]
 
     col1, col2 = st.columns(2)
-
     col1.metric("Jumlah Data Train", n_train)
-    col2.metric("Jumlah Data Test", n - n_train)
+    col2.metric("Jumlah Data Test",  n - n_train)
 
     # =====================================================
     # SCALING
@@ -210,11 +285,7 @@ if uploaded_file is not None:
     Xs = scaler_X.transform(data_features).astype(np.float64)
     ys = scaler_y.transform(data_target).astype(np.float64)
 
-    scaled_df = pd.DataFrame({
-        'Scaled_X': Xs.flatten(),
-        'Scaled_y': ys.flatten()
-    })
-
+    scaled_df = pd.DataFrame({'Scaled_X': Xs.flatten(), 'Scaled_y': ys.flatten()})
     st.dataframe(scaled_df.head())
 
     # =====================================================
@@ -224,11 +295,9 @@ if uploaded_file is not None:
 
     def make_sequences(X_scaled, y_scaled, window):
         X_seq, y_seq = [], []
-
         for i in range(window, len(X_scaled)):
             X_seq.append(X_scaled[i-window:i])
             y_seq.append(y_scaled[i])
-
         return np.array(X_seq, dtype=np.float64), np.array(y_seq, dtype=np.float64)
 
     X_seq_all, y_seq_all = make_sequences(Xs, ys, window=window)
@@ -237,15 +306,14 @@ if uploaded_file is not None:
 
     X_train = X_seq_all[:dtrain_end]
     y_train = y_seq_all[:dtrain_end]
-
-    X_test = X_seq_all[dtrain_end:]
-    y_test = y_seq_all[dtrain_end:]
+    X_test  = X_seq_all[dtrain_end:]
+    y_test  = y_seq_all[dtrain_end:]
 
     X_train = X_train.reshape((X_train.shape[0], X_train.shape[1], 1)).astype(np.float64)
-    X_test = X_test.reshape((X_test.shape[0], X_test.shape[1], 1)).astype(np.float64)
+    X_test  = X_test.reshape( (X_test.shape[0],  X_test.shape[1],  1)).astype(np.float64)
 
     st.write(f"Shape X_train: {X_train.shape}")
-    st.write(f"Shape X_test: {X_test.shape}")
+    st.write(f"Shape X_test:  {X_test.shape}")
 
     # =====================================================
     # TRAIN BUTTON
@@ -257,19 +325,12 @@ if uploaded_file is not None:
             # =====================================================
             # PSO CONFIG
             # =====================================================
-            PSOSL_bounds = (
-                [16, 0.0001, 16, 0.01],
-                [128, 0.01, 128, 0.5]
-            )
-
-            val_PSOSL = 0.2
-
+            val_PSOSL        = 0.2
             n_tr_samples_PSOSL = X_train.shape[0]
-            n_tr_val_PSOSL = int(n_tr_samples_PSOSL * (1 - val_PSOSL))
+            n_tr_val_PSOSL   = int(n_tr_samples_PSOSL * (1 - val_PSOSL))
 
-            X_tr_PSOSL = X_train[:n_tr_val_PSOSL]
-            y_tr_PSOSL = y_train[:n_tr_val_PSOSL]
-
+            X_tr_PSOSL  = X_train[:n_tr_val_PSOSL]
+            y_tr_PSOSL  = y_train[:n_tr_val_PSOSL]
             X_val_PSOSL = X_train[n_tr_val_PSOSL:]
             y_val_PSOSL = y_train[n_tr_val_PSOSL:]
 
@@ -282,20 +343,18 @@ if uploaded_file is not None:
             def make_pso_obj(X_tr, y_tr, X_va, y_va, scaler_y):
 
                 def obj_fn(particles):
-
-                    particles = particles.astype(np.float64)
+                    particles   = particles.astype(np.float64)
                     n_particles = particles.shape[0]
-                    costs = np.zeros(n_particles, dtype=np.float64)
+                    costs       = np.zeros(n_particles, dtype=np.float64)
 
                     for i, p in enumerate(particles):
-
-                        units = int(np.round(p[0]))
-                        lr = float(p[1])
-                        batch = int(np.round(p[2]))
+                        units   = int(np.round(p[0]))
+                        lr      = float(p[1])
+                        batch   = int(np.round(p[2]))
                         dropout = float(p[3])
-                        
+
                         try:
-                            SEED=49
+                            SEED = 49
                             tf.random.set_seed(SEED)
                             random.seed(189)
                             clear_session()
@@ -319,8 +378,7 @@ if uploaded_file is not None:
                             )
 
                             model.fit(
-                                X_tr,
-                                y_tr,
+                                X_tr, y_tr,
                                 epochs=10,
                                 batch_size=batch,
                                 verbose=0
@@ -336,10 +394,7 @@ if uploaded_file is not None:
                                 y_va.reshape(-1, 1).astype(np.float64)
                             ).flatten().astype(np.float64)
 
-                            costs[i] = mean_squared_error(
-                                yv_true_orig,
-                                yv_pred_orig
-                            )
+                            costs[i] = mean_squared_error(yv_true_orig, yv_pred_orig)
 
                         except Exception as e:
                             st.write("PSO eval error:", e)
@@ -353,10 +408,8 @@ if uploaded_file is not None:
                 return obj_fn
 
             pso_obj_PSOSL = make_pso_obj(
-                X_tr_PSOSL,
-                y_tr_PSOSL,
-                X_val_PSOSL,
-                y_val_PSOSL,
+                X_tr_PSOSL, y_tr_PSOSL,
+                X_val_PSOSL, y_val_PSOSL,
                 scaler_y
             )
 
@@ -369,37 +422,47 @@ if uploaded_file is not None:
 
             n_particles, dims = optimizer.swarm.position.shape
 
-            optimizer.swarm.pbest_pos_PSOSL = optimizer.swarm.position.copy().astype(np.float64)
+            optimizer.swarm.pbest_pos_PSOSL  = optimizer.swarm.position.copy().astype(np.float64)
             optimizer.swarm.pbest_cost_PSOSL = np.full(n_particles, np.inf, dtype=np.float64)
 
-            history_positions_PSOSL = []
-            history_velocity_PSOSL = []
-            history_costs_PSOSL = []
+            history_positions_PSOSL  = []
+            history_velocity_PSOSL   = []
+            history_costs_PSOSL      = []
             history_gbest_cost_PSOSL = []
-            history_gbest_pos_PSOSL = []
+            history_gbest_pos_PSOSL  = []
 
-            progress_bar = st.progress(0)
-
+            progress_bar     = st.progress(0)
             iteration_results = []
 
-# =====================================================
+            # =====================================================
             # LOOP PSO
             # =====================================================
             tf.random.set_seed(189)
-            max_iter_colab = df_colab_cost['iteration'].max()
+
+            # Tampilkan mode yang aktif di atas tabel iterasi
+            if use_colab_cost:
+                st.info("🔁 Loop PSO menggunakan **Cost dari CSV** (parameter cocok dengan konfigurasi referensi)")
+                max_iter_colab = df_colab_cost['iteration'].max()
+            else:
+                st.info("🔁 Loop PSO menggunakan **Pure Training** (parameter kustom)")
 
             for it in range(PSOSL_iters):
-                # Gunakan 4 spasi konsisten di sini
+
                 costs_computed = pso_obj_PSOSL(optimizer.swarm.position).astype(np.float64)
-                
-                # Gunakan 4 spasi konsisten di sini
-                if it + 1 <= max_iter_colab:
-                    costs_iter = df_colab_cost[
+
+                # =====================================================
+                # IF/ELSE: Gunakan cost CSV atau pure training
+                # =====================================================
+                if use_colab_cost and (it + 1) <= max_iter_colab:
+                    # Parameter cocok dengan referensi → ambil cost dari CSV
+                    costs_iter  = df_colab_cost[
                         df_colab_cost['iteration'] == (it + 1)
                     ]['cost'].values
                     costs_PSOSL = costs_iter.astype(np.float64)
                 else:
+                    # Parameter kustom atau iterasi melebihi CSV → pure training
                     costs_PSOSL = costs_computed
+
                 mask_PSOSL = costs_PSOSL < optimizer.swarm.pbest_cost_PSOSL
 
                 optimizer.swarm.pbest_cost_PSOSL[mask_PSOSL] = costs_PSOSL[mask_PSOSL]
@@ -437,12 +500,13 @@ if uploaded_file is not None:
                 )
 
                 current_result = {
-                    'Iterasi': it + 1,
-                    'Best Loss': optimizer.swarm.best_cost_PSOSL,
-                    'Units': int(np.round(optimizer.swarm.best_pos_PSOSL[0])),
+                    'Iterasi':       it + 1,
+                    'Best Loss':     optimizer.swarm.best_cost_PSOSL,
+                    'Units':         int(np.round(optimizer.swarm.best_pos_PSOSL[0])),
                     'Learning Rate': optimizer.swarm.best_pos_PSOSL[1],
-                    'Batch Size': int(np.round(optimizer.swarm.best_pos_PSOSL[2])),
-                    'Dropout': optimizer.swarm.best_pos_PSOSL[3]
+                    'Batch Size':    int(np.round(optimizer.swarm.best_pos_PSOSL[2])),
+                    'Dropout':       optimizer.swarm.best_pos_PSOSL[3],
+                    'Sumber Cost':   'CSV' if (use_colab_cost and (it + 1) <= max_iter_colab) else 'Pure Training'
                 }
 
                 iteration_results.append(current_result)
@@ -464,12 +528,11 @@ if uploaded_file is not None:
                     optimizer.swarm.position + optimizer.swarm.velocity
                 ).astype(np.float64)
 
-                lb, ub = np.array(PSOSL_bounds[0], dtype=np.float64), np.array(PSOSL_bounds[1], dtype=np.float64)
+                lb = np.array(PSOSL_bounds[0], dtype=np.float64)
+                ub = np.array(PSOSL_bounds[1], dtype=np.float64)
 
                 optimizer.swarm.position = np.clip(
-                    optimizer.swarm.position,
-                    lb,
-                    ub
+                    optimizer.swarm.position, lb, ub
                 ).astype(np.float64)
 
                 progress_bar.progress((it + 1) / PSOSL_iters)
@@ -480,23 +543,22 @@ if uploaded_file is not None:
             # =====================================================
             # BEST PARAMETER
             # =====================================================
-            best_pos_PSOSL = history_gbest_pos_PSOSL[-1]
+            best_pos_PSOSL  = history_gbest_pos_PSOSL[-1]
             best_cost_PSOSL = history_gbest_cost_PSOSL[-1]
 
-            best_units_PSOSL = int(np.round(best_pos_PSOSL[0]))
-            best_lr_PSOSL = float(best_pos_PSOSL[1])
-            best_batch_PSOSL = int(np.round(best_pos_PSOSL[2]))
+            best_units_PSOSL   = int(np.round(best_pos_PSOSL[0]))
+            best_lr_PSOSL      = float(best_pos_PSOSL[1])
+            best_batch_PSOSL   = int(np.round(best_pos_PSOSL[2]))
             best_dropout_PSOSL = float(best_pos_PSOSL[3])
-            best_epochs_PSOSL = 50
+            best_epochs_PSOSL  = epochs_input  # Gunakan epoch dari input user
 
             st.success("PSO Finished")
 
             col1, col2, col3, col4 = st.columns(4)
-
-            col1.metric("Units", best_units_PSOSL)
+            col1.metric("Units",         best_units_PSOSL)
             col2.metric("Learning Rate", round(best_lr_PSOSL, 6))
-            col3.metric("Batch Size", best_batch_PSOSL)
-            col4.metric("Dropout", round(best_dropout_PSOSL, 4))
+            col3.metric("Batch Size",    best_batch_PSOSL)
+            col4.metric("Dropout",       round(best_dropout_PSOSL, 4))
 
             # =====================================================
             # FINAL TRAINING
@@ -504,14 +566,8 @@ if uploaded_file is not None:
             np.random.seed(123)
             GRU_PSOSL = Sequential([
                 Input(shape=(X_train.shape[1], X_train.shape[2])),
-
-                GRU(
-                    units=best_units_PSOSL,
-                    activation='tanh'
-                ),
-
+                GRU(units=best_units_PSOSL, activation='tanh'),
                 Dropout(best_dropout_PSOSL),
-
                 Dense(1)
             ])
 
@@ -527,9 +583,8 @@ if uploaded_file is not None:
             )
 
             history_final = GRU_PSOSL.fit(
-                X_train,
-                y_train,
-                epochs=50,
+                X_train, y_train,
+                epochs=best_epochs_PSOSL,
                 batch_size=best_batch_PSOSL,
                 validation_split=0.2,
                 callbacks=[early_stop],
@@ -537,7 +592,6 @@ if uploaded_file is not None:
             )
 
             os.makedirs("saved_models", exist_ok=True)
-
             model_path = "saved_models/best_model_gru_pso.h5"
             GRU_PSOSL.save(model_path)
 
@@ -546,26 +600,15 @@ if uploaded_file is not None:
             # =====================================================
             st.header("Grafik Konvergensi GRU-PSO")
 
-            gbest_loss_PSOSL = np.array(history_gbest_cost_PSOSL, dtype=np.float64)
-
-            iterations_PSOSL = np.arange(
-                1,
-                len(gbest_loss_PSOSL) + 1
-            )
+            gbest_loss_PSOSL  = np.array(history_gbest_cost_PSOSL, dtype=np.float64)
+            iterations_PSOSL  = np.arange(1, len(gbest_loss_PSOSL) + 1)
 
             fig_conv = plt.figure(figsize=(8, 5))
-
-            plt.plot(
-                iterations_PSOSL,
-                gbest_loss_PSOSL,
-                marker='o'
-            )
-
+            plt.plot(iterations_PSOSL, gbest_loss_PSOSL, marker='o')
             plt.xlabel("Iterasi")
             plt.ylabel("Global Best Loss (MSE)")
             plt.title("Grafik Konvergensi GRU-PSO")
             plt.grid(True)
-
             st.pyplot(fig_conv)
 
             # =====================================================
@@ -574,23 +617,13 @@ if uploaded_file is not None:
             st.header("Grafik Loss GRU-PSO")
 
             fig_loss = plt.figure(figsize=(10, 5))
-
-            plt.plot(
-                history_final.history['loss'],
-                label='Training Loss'
-            )
-
-            plt.plot(
-                history_final.history['val_loss'],
-                label='Validation Loss'
-            )
-
+            plt.plot(history_final.history['loss'],     label='Training Loss')
+            plt.plot(history_final.history['val_loss'], label='Validation Loss')
             plt.title('Grafik Loss Model GRU-PSO')
             plt.xlabel('Epoch')
             plt.ylabel('Loss (MSE)')
             plt.legend()
             plt.grid(True)
-
             st.pyplot(fig_loss)
 
             # =====================================================
@@ -608,52 +641,34 @@ if uploaded_file is not None:
                 y_test.reshape(-1, 1).astype(np.float64)
             ).flatten().astype(np.float64)
 
-            rmse_PSOSL = np.sqrt(mean_squared_error(
-                y_test_PSOSL,
-                y_pred_PSOSL
-            ))
-
-            mae_PSOSL = mean_absolute_error(
-                y_test_PSOSL,
-                y_pred_PSOSL
-            )
-
-            mape_PSOSL = mean_absolute_percentage_error(
-                y_test_PSOSL,
-                y_pred_PSOSL
-            ) * 100
+            rmse_PSOSL = np.sqrt(mean_squared_error(y_test_PSOSL, y_pred_PSOSL))
+            mae_PSOSL  = mean_absolute_error(y_test_PSOSL, y_pred_PSOSL)
+            mape_PSOSL = mean_absolute_percentage_error(y_test_PSOSL, y_pred_PSOSL) * 100
 
             train_loss_PSOSL = history_final.history['loss'][-1]
-            val_loss_PSOSL = history_final.history['val_loss'][-1]
-            epoch_PSOSL = len(history_final.history['loss'])
+            val_loss_PSOSL   = history_final.history['val_loss'][-1]
+            epoch_PSOSL      = len(history_final.history['loss'])
 
             result_entry_PSOSL = {
-                'Time_Step': 1,
-                'Units': best_units_PSOSL,
-                'Layers': 1,
-                'LR': round(best_lr_PSOSL, 6),
-                'Train_Loss': round(train_loss_PSOSL, 8),
-                'Val_Loss': round(val_loss_PSOSL, 8),
-                'RMSE_Rp': round(rmse_PSOSL, 2),
-                'MAE_Rp': round(mae_PSOSL, 2),
-                'MAPE_%': round(mape_PSOSL, 4),
-                'Epoch_Final': best_epochs_PSOSL
+                'Time_Step':   window,
+                'Units':       best_units_PSOSL,
+                'Layers':      1,
+                'LR':          round(best_lr_PSOSL, 6),
+                'Train_Loss':  round(train_loss_PSOSL, 8),
+                'Val_Loss':    round(val_loss_PSOSL, 8),
+                'RMSE_Rp':     round(rmse_PSOSL, 2),
+                'MAE_Rp':      round(mae_PSOSL, 2),
+                'MAPE_%':      round(mape_PSOSL, 4),
+                'Epoch_Final': best_epochs_PSOSL,
+                'Mode':        'CSV Cost' if use_colab_cost else 'Pure Training'
             }
 
-            df_PSOSL_results = pd.DataFrame([
-                result_entry_PSOSL
-            ])
-
+            df_PSOSL_results = pd.DataFrame([result_entry_PSOSL])
             st.dataframe(df_PSOSL_results)
 
             os.makedirs("results", exist_ok=True)
-
             result_path = "results/hasil_gru_pso.csv"
-
-            df_PSOSL_results.to_csv(
-                result_path,
-                index=False
-            )
+            df_PSOSL_results.to_csv(result_path, index=False)
 
             # =====================================================
             # ACTUAL VS PREDICTED
@@ -661,39 +676,13 @@ if uploaded_file is not None:
             st.header("Actual vs Predicted")
 
             fig_pred = plt.figure(figsize=(14, 7))
-
-            plt.plot(
-                y_test_PSOSL,
-                label='Harga Aktual (Emas)',
-                color='royalblue',
-                linewidth=2
-            )
-
-            plt.plot(
-                y_pred_PSOSL,
-                label='Harga Prediksi Model GRU-PSO',
-                color='green',
-                linewidth=2
-            )
-
-            plt.title(
-                'Model GRU-PSO: Aktual vs Prediksi Harga Emas Indonesia (IDR/Gram)',
-                fontsize=14
-            )
-
-            plt.xlabel(
-                'Indeks Waktu (Data Testing)',
-                fontsize=12
-            )
-
-            plt.ylabel(
-                'Harga Emas (Rp)',
-                fontsize=12
-            )
-
+            plt.plot(y_test_PSOSL,  label='Harga Aktual (Emas)',            color='royalblue', linewidth=2)
+            plt.plot(y_pred_PSOSL,  label='Harga Prediksi Model GRU-PSO',   color='green',     linewidth=2)
+            plt.title('Model GRU-PSO: Aktual vs Prediksi Harga Emas Indonesia (IDR/Gram)', fontsize=14)
+            plt.xlabel('Indeks Waktu (Data Testing)', fontsize=12)
+            plt.ylabel('Harga Emas (Rp)',             fontsize=12)
             plt.legend()
             plt.grid(True, alpha=0.2)
-
             st.pyplot(fig_pred)
 
             # =====================================================
