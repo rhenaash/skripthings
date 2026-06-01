@@ -281,7 +281,7 @@ if uploaded_file is not None:
                             SEED=49
                             tf.random.set_seed(SEED)
                             np.random.seed(SEED)
-                            random.seed(189)
+                            random.seed(SEED)
                         
                             model = Sequential([
                                 Input(shape=(X_tr.shape[1], X_tr.shape[2])),
@@ -368,9 +368,9 @@ if uploaded_file is not None:
             # =====================================================
             # LOOP PSO
             # =====================================================
-            np.random.seed(189)
-            random.seed(189)
-            tf.random.set_seed(1890)
+            np.random.seed(SEED)
+            random.seed(SEED)
+            tf.random.set_seed(SEED)
             
             for it in range(PSOSL_iters):
 
