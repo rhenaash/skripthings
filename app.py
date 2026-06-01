@@ -390,7 +390,7 @@ if uploaded_file is not None:
 
             for it in range(PSOSL_iters):
 
-	  		costs_computed = pso_obj_PSOSL(optimizer.swarm.position).astype(np.float64)
+	  			costs_computed = pso_obj_PSOSL(optimizer.swarm.position).astype(np.float64)
 
                 # Gunakan cost dari Colab jika tersedia, fallback ke fitness function
                 if it + 1 <= max_iter_colab:
