@@ -21,6 +21,8 @@ tf.random.set_seed(SEED_VALUE)
 import matplotlib.pyplot as plt
 import seaborn as sns
 import missingno as msno
+import requests
+import io
 
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import (
@@ -109,6 +111,15 @@ if uploaded_file is not None:
 
     elif file_extension == 'xlsx':
         emas = pd.read_excel(uploaded_file)
+
+GITHUB_COST_URL = "https://raw.githubusercontent.com/rhenaash/skripthings/main/Log%20Partikel%20SL%20%28TW%29%20Timestep%20--%201%20CB.csv"
+@st.cache_data
+def load_colab_costs():
+    response = requests.get(GITHUB_COST_URL)
+    df = pd.read_csv(io.StringIO(response.text))
+    return df
+
+df_colab_cost = load_colab_costs()
 
     # =====================================================
     # MISSING VALUE
