@@ -295,11 +295,9 @@ if uploaded_file is not None:
                         dropout = float(p[3])
                         
                         try:
-                            SEED = 49
                             tf.random.set_seed(SEED)
-                            np.random.seed(SEED)
                             random.seed(189)
-                            tf.keras.backend.clear_session()
+                            clear_session()
 
                             model = Sequential([
                                 Input(shape=(X_tr.shape[1], X_tr.shape[2])),
@@ -386,10 +384,7 @@ if uploaded_file is not None:
             # =====================================================
             # LOOP PSO
             # =====================================================
-            SEED = 49
-            np.random.seed(SEED)
-            random.seed(SEED)
-            tf.random.set_seed(SEED)
+            tf.random.set_seed(189)
 
             max_iter_colab = df_colab_cost['iteration'].max()
 
