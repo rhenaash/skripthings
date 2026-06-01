@@ -1,3 +1,5 @@
+bisa kah kamu menambahkan perintah loggingnya tanpa mengubah struktur syntax yg sudah ada? agar tetap identik dengan struktur gcolab
+
 import os
 import gc
 import random
@@ -96,8 +98,6 @@ uploaded_file = st.file_uploader(
     "Upload Dataset",
     type=['csv', 'xlsx']
 )
-
-uploaded_log = st.sidebar.file_uploader("Upload Log Partikel (Opsional)", type=['csv'])
 
 # =====================================================
 # LOAD DATA
@@ -237,32 +237,15 @@ if uploaded_file is not None:
     # =====================================================
     if st.button("Train GRU-PSO"):
 
-        PSOSL_bounds = (
-                [16, 0.0001, 16, 0.01],
-                [128, 0.01, 128, 0.5]
-        )
-        
-    # 1. Injeksi Parameter
-        init_pos = None
-        if uploaded_log is not None:
-            df_log = pd.read_csv(uploaded_log)
-
-            best_row = df_log.loc[df_log['cost'].idxmin()] # Sesuaikan 'cost'
-            best_params = [
-                best_row['units'],    # Sesuaikan 'units'
-                best_row['lr'],       # Sesuaikan 'lr'
-                best_row['batch'],    # Sesuaikan 'batch'
-                best_row['dropout']   # Sesuaikan 'dropout'
-            ]
-            
-            init_pos = np.array([best_params for _ in range(PSOSL_particles)])
-            st.info(f"Injeksi berhasil! PSO mulai dari: {best_params}")
-    
         with st.spinner("Training Model..."):
 
             # =====================================================
             # PSO CONFIG
             # =====================================================
+            PSOSL_bounds = (
+                [16, 0.0001, 16, 0.01],
+                [128, 0.01, 128, 0.5]
+            )
 
             val_PSOSL = 0.2
 
@@ -361,9 +344,6 @@ if uploaded_file is not None:
                 bounds=PSOSL_bounds
             )
 
-        if init_pos is not None:
-            optimizer.swarm.position = init_pos
-
             n_particles, dims = optimizer.swarm.position.shape
 
             optimizer.swarm.pbest_pos_PSOSL = optimizer.swarm.position.copy()
@@ -382,23 +362,13 @@ if uploaded_file is not None:
             # =====================================================
             # LOOP PSO
             # =====================================================
-            tf.random.set_seed(49)
-            all_particle_logs = []
+            np.random.seed(189)
+            random.seed(189)
+            tf.random.set_seed(1890)
             
             for it in range(PSOSL_iters):
 
                 costs_PSOSL = pso_obj_PSOSL(optimizer.swarm.position)
-
-                for p_idx in range(PSOSL_particles):
-                    all_particle_logs.append({
-                        'Iterasi': it + 1,
-                        'Partikel': p_idx + 1,
-                        'Units': int(np.round(optimizer.swarm.position[p_idx][0])),
-                        'LR': float(optimizer.swarm.position[p_idx][1]),
-                        'Batch': int(np.round(optimizer.swarm.position[p_idx][2])),
-                        'Dropout': float(optimizer.swarm.position[p_idx][3]),
-                        'Cost': costs_PSOSL[p_idx]
-                })
 
                 mask_PSOSL = costs_PSOSL < optimizer.swarm.pbest_cost_PSOSL
 
@@ -471,25 +441,6 @@ if uploaded_file is not None:
                 )
 
                 progress_bar.progress((it + 1) / PSOSL_iters)
-
-            # Konversi ke DataFrame
-            df_particle_logs = pd.DataFrame(all_particle_logs)
-            
-            # Tampilkan di Streamlit
-            st.subheader("Log Detail Parameter per Partikel & Iterasi")
-            st.dataframe(df_particle_logs)
-            
-            # Simpan ke folder results
-            os.makedirs("results", exist_ok=True)
-            df_particle_logs.to_csv("results/log_detail_parameter.csv", index=False)
-            
-            # Tambahkan tombol download
-            st.download_button(
-                label='Download Log Detail CSV',
-                data=df_particle_logs.to_csv(index=False),
-                file_name='log_detail_parameter.csv',
-                mime='text/csv'
-            )
 
             st.subheader("Hasil Iterasi PSO")
             st.dataframe(pd.DataFrame(iteration_results))
