@@ -247,8 +247,15 @@ if uploaded_file is not None:
         if uploaded_log is not None:
             df_log = pd.read_csv(uploaded_log)
             # Ambil baris dengan cost terkecil
-            best_row = df_log.loc[df_log['Cost'].idxmin()] 
-            best_params = [best_row['Units'], best_row['LR'], best_row['Batch'], best_row['Dropout']]
+            st_params = [best_row['Units'], best_row['LR'], best_row['Batch'], best_row['Dropout']]
+            # Contoh penyesuaian:
+            best_row = df_log.loc[df_log['cost'].idxmin()] # Sesuaikan 'cost'
+            best_params = [
+                best_row['units'],    # Sesuaikan 'units'
+                best_row['lr'],       # Sesuaikan 'lr'
+                best_row['batch'],    # Sesuaikan 'batch'
+                best_row['dropout']   # Sesuaikan 'dropout'
+            ]
             init_pos = np.array([best_params for _ in range(PSOSL_particles)])
             st.info(f"Injeksi berhasil! PSO mulai dari: {best_params}")
     
