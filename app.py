@@ -62,6 +62,8 @@ def load_colab_costs():
     df = pd.read_csv(io.StringIO(response.text))
     return df
 
+df_colab_cost = load_colab_costs()
+
 # =====================================================
 # SIDEBAR
 # =====================================================
