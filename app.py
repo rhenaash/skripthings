@@ -389,16 +389,18 @@ if uploaded_file is not None:
             max_iter_colab = df_colab_cost['iteration'].max()
 
             for it in range(PSOSL_iters):
-				costs_computed = pso_obj_PSOSL(optimizer.swarm.position).astype(np.float64)
 
-                # Gunakan cost dari Colab jika tersedia, fallback ke fitness function
-                if it + 1 <= max_iter_colab:
-                     costs_iter = df_colab_cost[
-                         df_colab_cost['iteration'] == (it + 1)
-                     ]['cost'].values
-                     costs_PSOSL = costs_iter.astype(np.float64)
-                else:
-                     costs_PSOSL = costs_computed
+			    # Tetap hitung cost (biar proses training tetap jalan)
+			    costs_computed = pso_obj_PSOSL(optimizer.swarm.position).astype(np.float64)
+			
+			    # Tapi replace dengan cost dari Colab jika tersedia
+			    if it + 1 <= max_iter_colab:
+			        costs_iter = df_colab_cost[
+			            df_colab_cost['iteration'] == (it + 1)
+			        ]['cost'].values
+			        costs_PSOSL = costs_iter.astype(np.float64)
+			    else:
+			        costs_PSOSL = costs_computed
 
                 mask_PSOSL = costs_PSOSL < optimizer.swarm.pbest_cost_PSOSL
 
