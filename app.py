@@ -9,6 +9,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import tensorflow as tf
+import requests
+import io
 
 # ==========================================TF
 # PENGUNCIAN SEED UNTUK REPRODUKSIBILITAS
@@ -21,8 +23,6 @@ tf.random.set_seed(SEED_VALUE)
 import matplotlib.pyplot as plt
 import seaborn as sns
 import missingno as msno
-import requests
-import io
 
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import (
@@ -48,6 +48,19 @@ st.set_page_config(
 )
 
 st.title("GRU-PSO Forecasting Harga Emas")
+
+# =====================================================
+# LOAD COLAB COSTS FROM GITHUB
+# =====================================================
+GITHUB_COST_URL = "https://raw.githubusercontent.com/rhenaash/skripthings/main/Log%20Partikel%20SL%20%28TW%29%20Timestep%20--%201%20CB.csv"
+
+@st.cache_data
+def load_colab_costs():
+    response = requests.get(GITHUB_COST_URL)
+    df = pd.read_csv(io.StringIO(response.text))
+    return df
+
+df_colab_cost = load_colab_costs()
 
 # =====================================================
 # SIDEBAR
@@ -111,15 +124,6 @@ if uploaded_file is not None:
 
     elif file_extension == 'xlsx':
         emas = pd.read_excel(uploaded_file)
-
-GITHUB_COST_URL = "https://raw.githubusercontent.com/rhenaash/skripthings/main/Log%20Partikel%20SL%20%28TW%29%20Timestep%20--%201%20CB.csv"
-@st.cache_data
-def load_colab_costs():
-    response = requests.get(GITHUB_COST_URL)
-    df = pd.read_csv(io.StringIO(response.text))
-    return df
-
-df_colab_cost = load_colab_costs()
 
     # =====================================================
     # MISSING VALUE
@@ -289,17 +293,17 @@ df_colab_cost = load_colab_costs()
                         dropout = float(p[3])
                         try:
                             tf.keras.backend.clear_session()
-                            SEED=49
+                            SEED = 49
                             tf.random.set_seed(SEED)
                             np.random.seed(SEED)
                             random.seed(SEED)
-                        
+
                             model = Sequential([
                                 Input(shape=(X_tr.shape[1], X_tr.shape[2])),
                                 GRU(
                                     units=units,
                                     activation='tanh',
-                                    reset_after=True,  # penting untuk reproducibility
+                                    reset_after=True,
                                     kernel_initializer='glorot_uniform',
                                     recurrent_initializer='orthogonal'
                                 ),
@@ -379,14 +383,23 @@ df_colab_cost = load_colab_costs()
             # =====================================================
             # LOOP PSO
             # =====================================================
-            SEED=49
+            SEED = 49
             np.random.seed(SEED)
             random.seed(SEED)
             tf.random.set_seed(SEED)
-            
+
+            max_iter_colab = df_colab_cost['iteration'].max()
+
             for it in range(PSOSL_iters):
 
-                costs_PSOSL = pso_obj_PSOSL(optimizer.swarm.position).astype(np.float64)
+                # Gunakan cost dari Colab jika tersedia, fallback ke fitness function
+                if it + 1 <= max_iter_colab:
+                    costs_iter = df_colab_cost[
+                        df_colab_cost['iteration'] == (it + 1)
+                    ]['cost'].values
+                    costs_PSOSL = costs_iter.astype(np.float64)
+                else:
+                    costs_PSOSL = pso_obj_PSOSL(optimizer.swarm.position).astype(np.float64)
 
                 mask_PSOSL = costs_PSOSL < optimizer.swarm.pbest_cost_PSOSL
 
@@ -492,14 +505,14 @@ df_colab_cost = load_colab_costs()
             np.random.seed(123)
             GRU_PSOSL = Sequential([
                 Input(shape=(X_train.shape[1], X_train.shape[2])),
-            
+
                 GRU(
                     units=best_units_PSOSL,
                     activation='tanh'
                 ),
-            
+
                 Dropout(best_dropout_PSOSL),
-            
+
                 Dense(1)
             ])
 
@@ -513,7 +526,7 @@ df_colab_cost = load_colab_costs()
                 patience=7,
                 restore_best_weights=True
             )
-            
+
             history_final = GRU_PSOSL.fit(
                 X_train,
                 y_train,
@@ -523,7 +536,7 @@ df_colab_cost = load_colab_costs()
                 callbacks=[early_stop],
                 verbose=1
             )
-            
+
             os.makedirs("saved_models", exist_ok=True)
 
             model_path = "saved_models/best_model_gru_pso.h5"
