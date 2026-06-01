@@ -355,7 +355,7 @@ if uploaded_file is not None:
                 bounds=PSOSL_bounds
             )
 
-            if init_pos is not None:
+        if init_pos is not None:
             optimizer.swarm.position = init_pos
 
             n_particles, dims = optimizer.swarm.position.shape
