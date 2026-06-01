@@ -18,7 +18,7 @@ import io
 SEED_VALUE = 49
 random.seed(SEED_VALUE)
 np.random.seed(SEED_VALUE)
-tf.random.set_seed(SEED_VALUE)
+.set_seed(SEED_VALUE)
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -291,12 +291,13 @@ if uploaded_file is not None:
                         lr = float(p[1])
                         batch = int(np.round(p[2]))
                         dropout = float(p[3])
+                        
                         try:
-                            tf.keras.backend.clear_session()
                             SEED = 49
                             tf.random.set_seed(SEED)
                             np.random.seed(SEED)
-                            random.seed(SEED)
+                            random.seed(189)
+                            tf.keras.backend.clear_session()
 
                             model = Sequential([
                                 Input(shape=(X_tr.shape[1], X_tr.shape[2])),
