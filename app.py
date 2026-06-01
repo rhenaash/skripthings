@@ -18,7 +18,7 @@ import io
 SEED_VALUE = 49
 random.seed(SEED_VALUE)
 np.random.seed(SEED_VALUE)
-.set_seed(SEED_VALUE)
+tf.set_seed(SEED_VALUE)
 
 import matplotlib.pyplot as plt
 import seaborn as sns
