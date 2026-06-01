@@ -60,7 +60,7 @@ def load_colab_costs():
     headers = {"Authorization": f"token {token}"}
     response = requests.get(GITHUB_COST_URL, headers=headers)
     df = pd.read_csv(io.StringIO(response.text))
-return df
+    return df
 
 # =====================================================
 # SIDEBAR
