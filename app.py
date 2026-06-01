@@ -252,55 +252,8 @@ if uploaded_file is not None:
         emas = pd.read_excel(uploaded_file)
 
     # =====================================================
-    # MISSING VALUE
+    # PRAPEMROSESAN (komputasi di luar tab, dipakai semua tab)
     # =====================================================
-    st.header("Missing Value")
-
-    missing_table = emas.isnull().sum().reset_index()
-    missing_table.columns = ['Kolom', 'Jumlah Missing']
-    st.dataframe(missing_table)
-
-    fig_missing = plt.figure(figsize=(10, 5))
-    msno.matrix(emas)
-    plt.title('Peta Distribusi Missing Value', fontsize=20)
-    st.pyplot(fig_missing)
-
-    # =====================================================
-    # OUTLIERS
-    # =====================================================
-    st.header("Outlier Detection")
-
-    fig_box = plt.figure(figsize=(10, 5))
-    sns.boxplot(x=emas['Terakhir'], color='gold')
-    plt.title('Boxplot Harga Emas (XAU/IDR)')
-    st.pyplot(fig_box)
-
-    Q1 = emas['Terakhir'].quantile(0.25)
-    Q3 = emas['Terakhir'].quantile(0.75)
-    IQR = Q3 - Q1
-
-    lower_bound = Q1 - 1.5 * IQR
-    upper_bound = Q3 + 1.5 * IQR
-
-    outliers = emas[
-        (emas['Terakhir'] < lower_bound) |
-        (emas['Terakhir'] > upper_bound)
-    ]
-
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Q1",          f"{Q1:,.2f}")
-    col2.metric("Q3",          f"{Q3:,.2f}")
-    col3.metric("Lower Bound", f"{lower_bound:,.2f}")
-    col4.metric("Upper Bound", f"{upper_bound:,.2f}")
-
-    st.write(f"Jumlah Outlier ditemukan: {len(outliers)}")
-    st.dataframe(outliers)
-
-    # =====================================================
-    # SPLIT DATA
-    # =====================================================
-    st.header("Split Data")
-
     feature_cols  = ["Terakhir"]
     target_col    = "Terakhir"
 
@@ -314,28 +267,11 @@ if uploaded_file is not None:
     train_values = values[:n_train]
     test_values  = values[n_train:]
 
-    col1, col2 = st.columns(2)
-    col1.metric("Jumlah Data Train", n_train)
-    col2.metric("Jumlah Data Test",  n - n_train)
-
-    # =====================================================
-    # SCALING
-    # =====================================================
-    st.header("Data Scaling")
-
     scaler_X = MinMaxScaler().fit(data_features[:n_train])
     scaler_y = MinMaxScaler().fit(data_target[:n_train])
 
     Xs = scaler_X.transform(data_features).astype(np.float64)
     ys = scaler_y.transform(data_target).astype(np.float64)
-
-    scaled_df = pd.DataFrame({'Scaled_X': Xs.flatten(), 'Scaled_y': ys.flatten()})
-    st.dataframe(scaled_df.head())
-
-    # =====================================================
-    # WINDOWING
-    # =====================================================
-    st.header("Windowing Data")
 
     def make_sequences(X_scaled, y_scaled, window):
         X_seq, y_seq = [], []
@@ -356,18 +292,110 @@ if uploaded_file is not None:
     X_train = X_train.reshape((X_train.shape[0], X_train.shape[1], 1)).astype(np.float64)
     X_test  = X_test.reshape( (X_test.shape[0],  X_test.shape[1],  1)).astype(np.float64)
 
-    st.write(f"Shape X_train: {X_train.shape}")
-    st.write(f"Shape X_test:  {X_test.shape}")
+    # IQR untuk outlier (dipakai di tab deskripsi)
+    Q1 = emas['Terakhir'].quantile(0.25)
+    Q3 = emas['Terakhir'].quantile(0.75)
+    IQR = Q3 - Q1
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+    outliers = emas[
+        (emas['Terakhir'] < lower_bound) |
+        (emas['Terakhir'] > upper_bound)
+    ]
 
     # =====================================================
-    # TAB PEMODELAN
+    # TAB UTAMA
     # =====================================================
-    tab1, tab2, tab3, tab4 = st.tabs([
+    tab0, tab1, tab2, tab3, tab4 = st.tabs([
+        "📋 Deskripsi Data",
         "🔵 GRU-PSO",
         "🟢 GRU Standar",
         "📊 Perbandingan Model",
         "🔮 Prediksi ke Depan"
     ])
+
+    # ===========================================================
+    # TAB 0 — DESKRIPSI DATA
+    # ===========================================================
+    with tab0:
+
+        # =====================================================
+        # TIME SERIES PLOT
+        # =====================================================
+        st.header("Time Series Plot")
+
+        fig_ts = plt.figure(figsize=(14, 5))
+        plt.plot(emas['Terakhir'].values, color='royalblue', linewidth=1.5)
+        plt.title('Time Series Harga Emas (IDR/Gram)', fontsize=14)
+        plt.xlabel('Indeks Waktu')
+        plt.ylabel('Harga Emas (Rp)')
+        plt.grid(True, alpha=0.3)
+        st.pyplot(fig_ts)
+
+        # =====================================================
+        # STATISTIK DESKRIPTIF
+        # =====================================================
+        st.header("Statistik Deskriptif")
+
+        st.dataframe(emas[['Terakhir']].describe().T, use_container_width=True)
+
+        # =====================================================
+        # MISSING VALUE
+        # =====================================================
+        st.header("Missing Value")
+
+        missing_table = emas.isnull().sum().reset_index()
+        missing_table.columns = ['Kolom', 'Jumlah Missing']
+        st.dataframe(missing_table)
+
+        fig_missing = plt.figure(figsize=(10, 5))
+        msno.matrix(emas)
+        plt.title('Peta Distribusi Missing Value', fontsize=20)
+        st.pyplot(fig_missing)
+
+        # =====================================================
+        # OUTLIERS
+        # =====================================================
+        st.header("Outlier Detection")
+
+        fig_box = plt.figure(figsize=(10, 5))
+        sns.boxplot(x=emas['Terakhir'], color='gold')
+        plt.title('Boxplot Harga Emas (XAU/IDR)')
+        st.pyplot(fig_box)
+
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Q1",          f"{Q1:,.2f}")
+        col2.metric("Q3",          f"{Q3:,.2f}")
+        col3.metric("Lower Bound", f"{lower_bound:,.2f}")
+        col4.metric("Upper Bound", f"{upper_bound:,.2f}")
+
+        st.write(f"Jumlah Outlier ditemukan: {len(outliers)}")
+        st.dataframe(outliers)
+
+        # =====================================================
+        # SPLIT DATA
+        # =====================================================
+        st.header("Split Data")
+
+        col1, col2 = st.columns(2)
+        col1.metric("Jumlah Data Train", n_train)
+        col2.metric("Jumlah Data Test",  n - n_train)
+
+        # =====================================================
+        # SCALING
+        # =====================================================
+        st.header("Data Scaling")
+
+        scaled_df = pd.DataFrame({'Scaled_X': Xs.flatten(), 'Scaled_y': ys.flatten()})
+        st.dataframe(scaled_df.head())
+
+        # =====================================================
+        # WINDOWING
+        # =====================================================
+        st.header("Windowing Data")
+
+        st.write(f"Shape X_train: {X_train.shape}")
+        st.write(f"Shape X_test:  {X_test.shape}")
 
     # ===========================================================
     # TAB 1 — GRU-PSO
