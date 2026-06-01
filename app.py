@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 import tensorflow as tf
 
-# ==========================================TF
+# ==========================================
 # PENGUNCIAN SEED UNTUK REPRODUKSIBILITAS
 # ==========================================
 SEED_VALUE = 49
@@ -97,6 +97,8 @@ uploaded_file = st.file_uploader(
     type=['csv', 'xlsx']
 )
 
+uploaded_log = st.sidebar.file_uploader("Upload Log Partikel (Opsional)", type=['csv'])
+
 # =====================================================
 # LOAD DATA
 # =====================================================
@@ -109,6 +111,11 @@ if uploaded_file is not None:
 
     elif file_extension == 'xlsx':
         emas = pd.read_excel(uploaded_file)
+
+    if uploaded_log is not None:
+        df_log = pd.read_csv(uploaded_log)
+    else:
+        df_log = None
 
     # =====================================================
     # MISSING VALUE
@@ -235,16 +242,32 @@ if uploaded_file is not None:
     # =====================================================
     if st.button("Train GRU-PSO"):
 
+        PSOSL_bounds = (
+            [16, 0.0001, 16, 0.01],
+            [128, 0.01, 128, 0.5]
+        )
+
+        # 1. Injeksi Parameter
+        init_pos = None
+        if uploaded_log is not None:
+            df_log = pd.read_csv(uploaded_log)
+
+            best_row = df_log.loc[df_log['cost'].idxmin()]
+            best_params = [
+                best_row['units'],
+                best_row['lr'],
+                best_row['batch'],
+                best_row['dropout']
+            ]
+
+            init_pos = np.array([best_params for _ in range(PSOSL_particles)])
+            st.info(f"Injeksi berhasil! PSO mulai dari: {best_params}")
+
         with st.spinner("Training Model..."):
 
             # =====================================================
             # PSO CONFIG
             # =====================================================
-            PSOSL_bounds = (
-                [16, 0.0001, 16, 0.01],
-                [128, 0.01, 128, 0.5]
-            )
-
             val_PSOSL = 0.2
 
             n_tr_samples_PSOSL = X_train.shape[0]
@@ -275,11 +298,12 @@ if uploaded_file is not None:
                         lr = float(p[1])
                         batch = int(np.round(p[2]))
                         dropout = float(p[3])
+
                         try:
                             tf.random.set_seed(49)
                             random.seed(189)
                             clear_session()
-                        
+
                             model = Sequential([
                                 Input(shape=(X_tr.shape[1], X_tr.shape[2])),
                                 GRU(
@@ -342,10 +366,13 @@ if uploaded_file is not None:
                 bounds=PSOSL_bounds
             )
 
-            n_particles, dims = optimizer.swarm.position.shape
+            if init_pos is not None:
+                optimizer.swarm.position = init_pos
 
-            optimizer.swarm.pbest_pos_PSOSL = optimizer.swarm.position.copy()
-            optimizer.swarm.pbest_cost_PSOSL = np.full(n_particles, np.inf)
+                n_particles, dims = optimizer.swarm.position.shape
+
+                optimizer.swarm.pbest_pos_PSOSL = optimizer.swarm.position.copy()
+                optimizer.swarm.pbest_cost_PSOSL = np.full(n_particles, np.inf)
 
             history_positions_PSOSL = []
             history_velocity_PSOSL = []
@@ -360,13 +387,32 @@ if uploaded_file is not None:
             # =====================================================
             # LOOP PSO
             # =====================================================
-            np.random.seed(189)
-            random.seed(189)
-            tf.random.set_seed(1890)
-            
+            tf.random.set_seed(49)
+            all_particle_logs = []
+
             for it in range(PSOSL_iters):
 
-                costs_PSOSL = pso_obj_PSOSL(optimizer.swarm.position)
+                # LOGIKA PENENTUAN COST
+                if df_log is not None:
+                    iterasi_log = df_log[(df_log['Iterasi'] == (it + 1))]
+                    if not iterasi_log.empty:
+                        costs_PSOSL = iterasi_log.sort_values('partikel_id')['cost'].values
+                    else:
+                        costs_PSOSL = pso_obj_PSOSL(optimizer.swarm.position)
+                else:
+                    costs_PSOSL = pso_obj_PSOSL(optimizer.swarm.position)
+
+                # Simpan log partikel
+                for p_idx in range(PSOSL_particles):
+                    all_particle_logs.append({
+                        'Iterasi': it + 1,
+                        'Partikel': p_idx + 1,
+                        'Units': int(np.round(optimizer.swarm.position[p_idx][0])),
+                        'LR': float(optimizer.swarm.position[p_idx][1]),
+                        'Batch': int(np.round(optimizer.swarm.position[p_idx][2])),
+                        'Dropout': float(optimizer.swarm.position[p_idx][3]),
+                        'Cost': costs_PSOSL[p_idx]
+                    })
 
                 mask_PSOSL = costs_PSOSL < optimizer.swarm.pbest_cost_PSOSL
 
@@ -440,6 +486,25 @@ if uploaded_file is not None:
 
                 progress_bar.progress((it + 1) / PSOSL_iters)
 
+            # Konversi ke DataFrame
+            df_particle_logs = pd.DataFrame(all_particle_logs)
+
+            # Tampilkan di Streamlit
+            st.subheader("Log Detail Parameter per Partikel & Iterasi")
+            st.dataframe(df_particle_logs)
+
+            # Simpan ke folder results
+            os.makedirs("results", exist_ok=True)
+            df_particle_logs.to_csv("results/log_detail_parameter.csv", index=False)
+
+            # Tambahkan tombol download
+            st.download_button(
+                label='Download Log Detail CSV',
+                data=df_particle_logs.to_csv(index=False),
+                file_name='log_detail_parameter.csv',
+                mime='text/csv'
+            )
+
             st.subheader("Hasil Iterasi PSO")
             st.dataframe(pd.DataFrame(iteration_results))
 
@@ -470,14 +535,11 @@ if uploaded_file is not None:
             np.random.seed(123)
             GRU_PSOSL = Sequential([
                 Input(shape=(X_train.shape[1], X_train.shape[2])),
-            
                 GRU(
                     units=best_units_PSOSL,
                     activation='tanh'
                 ),
-            
                 Dropout(best_dropout_PSOSL),
-            
                 Dense(1)
             ])
 
@@ -491,7 +553,7 @@ if uploaded_file is not None:
                 patience=7,
                 restore_best_weights=True
             )
-            
+
             history_final = GRU_PSOSL.fit(
                 X_train,
                 y_train,
@@ -501,7 +563,7 @@ if uploaded_file is not None:
                 callbacks=[early_stop],
                 verbose=1
             )
-            
+
             os.makedirs("saved_models", exist_ok=True)
 
             model_path = "saved_models/best_model_gru_pso.h5"
