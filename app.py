@@ -627,7 +627,7 @@ if uploaded_file is not None:
 
                     early_stop = EarlyStopping(
                         monitor='val_loss',
-                        patience=5,
+                        patience=7,
                         restore_best_weights=True
                     )
 
