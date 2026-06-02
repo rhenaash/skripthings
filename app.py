@@ -612,7 +612,7 @@ if uploaded_file is not None:
                     # =====================================================
                     # FINAL TRAINING
                     # =====================================================
-                    np.random.seed(127)
+                    np.random.seed(49)
                     GRU_PSOSL = Sequential([
                         Input(shape=(X_train.shape[1], X_train.shape[2])),
                         GRU(units=best_units_PSOSL, activation='tanh'),
