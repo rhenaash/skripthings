@@ -333,7 +333,18 @@ if uploaded_file is not None:
             # =====================================================
             st.header("Statistik Deskriptif")
     
-            st.dataframe(emas[['Terakhir']].describe().T, use_container_width=True)
+            desc = emas[['Terakhir']].describe().T
+            desc = desc.rename(columns={
+                'count': 'Jumlah Data',
+                'mean': 'Mean',
+                'std': 'Std. Deviasi',
+                'min': 'Minimum',
+                '25%': 'Q1',
+                '50%': 'Q2',
+                '75%': 'Q3',
+                'max': 'Maksimum'
+            }).reset_index().rename(columns={'index': 'Variabel'})
+            st.dataframe(desc, use_container_width=True, hide_index=True)
     
             # =====================================================
             # MISSING VALUE
