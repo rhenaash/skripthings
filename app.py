@@ -315,72 +315,72 @@ if uploaded_file is not None:
     with tab0:
         with st.container(border=True):
 
-        # =====================================================
-        # TIME SERIES PLOT
-        # =====================================================
-        st.header("Time Series Plot")
-
-        fig_ts = plt.figure(figsize=(14, 5))
-        plt.plot(emas['Terakhir'].values, color='royalblue', linewidth=1.5)
-        plt.title('Time Series Harga Emas (IDR/Gram)', fontsize=14)
-        plt.xlabel('Indeks Waktu')
-        plt.ylabel('Harga Emas (Rp)')
-        plt.grid(True, alpha=0.3)
-        st.pyplot(fig_ts)
-
-        # =====================================================
-        # STATISTIK DESKRIPTIF
-        # =====================================================
-        st.header("Statistik Deskriptif")
-
-        st.dataframe(emas[['Terakhir']].describe().T, use_container_width=True)
-
-        # =====================================================
-        # MISSING VALUE
-        # =====================================================
-        st.header("Missing Value")
-
-        missing_table = emas.isnull().sum().reset_index()
-        missing_table.columns = ['Kolom', 'Jumlah Missing']
-        st.dataframe(missing_table)
-
-        # =====================================================
-        # OUTLIERS
-        # =====================================================
-        st.header("Outlier Detection")
-
-        fig_box = plt.figure(figsize=(10, 5))
-        sns.boxplot(x=emas['Terakhir'], color='gold')
-        plt.title('Boxplot Harga Emas (AGU/IDR)')
-        st.pyplot(fig_box)
-
-        st.write(f"Jumlah Outlier ditemukan: {len(outliers)}")
-        st.dataframe(outliers)
-
-        # =====================================================
-        # SPLIT DATA
-        # =====================================================
-        st.header("Split Data")
-
-        col1, col2 = st.columns(2)
-        col1.metric("Jumlah Data Train", n_train)
-        col2.metric("Jumlah Data Test",  n - n_train)
-
-        # =====================================================
-        # SCALING
-        # =====================================================
-        st.header("Data Scaling")
-
-        scaled_df = pd.DataFrame({'Scaled_X': Xs.flatten(), 'Scaled_y': ys.flatten()})
-        st.dataframe(scaled_df.head())
-
-        # =====================================================
-        # WINDOWING
-        # =====================================================
-        st.header("Windowing Data")
-
-        st.write(f"Shape X_train: {X_train.shape}")
-        st.write(f"Shape X_test:  {X_test.shape}")
+            # =====================================================
+            # TIME SERIES PLOT
+            # =====================================================
+            st.header("Time Series Plot")
+    
+            fig_ts = plt.figure(figsize=(14, 5))
+            plt.plot(emas['Terakhir'].values, color='royalblue', linewidth=1.5)
+            plt.title('Time Series Harga Emas (IDR/Gram)', fontsize=14)
+            plt.xlabel('Indeks Waktu')
+            plt.ylabel('Harga Emas (Rp)')
+            plt.grid(True, alpha=0.3)
+            st.pyplot(fig_ts)
+    
+            # =====================================================
+            # STATISTIK DESKRIPTIF
+            # =====================================================
+            st.header("Statistik Deskriptif")
+    
+            st.dataframe(emas[['Terakhir']].describe().T, use_container_width=True)
+    
+            # =====================================================
+            # MISSING VALUE
+            # =====================================================
+            st.header("Missing Value")
+    
+            missing_table = emas.isnull().sum().reset_index()
+            missing_table.columns = ['Kolom', 'Jumlah Missing']
+            st.dataframe(missing_table)
+    
+            # =====================================================
+            # OUTLIERS
+            # =====================================================
+            st.header("Outlier Detection")
+    
+            fig_box = plt.figure(figsize=(10, 5))
+            sns.boxplot(x=emas['Terakhir'], color='gold')
+            plt.title('Boxplot Harga Emas (AGU/IDR)')
+            st.pyplot(fig_box)
+    
+            st.write(f"Jumlah Outlier ditemukan: {len(outliers)}")
+            st.dataframe(outliers)
+    
+            # =====================================================
+            # SPLIT DATA
+            # =====================================================
+            st.header("Split Data")
+    
+            col1, col2 = st.columns(2)
+            col1.metric("Jumlah Data Train", n_train)
+            col2.metric("Jumlah Data Test",  n - n_train)
+    
+            # =====================================================
+            # SCALING
+            # =====================================================
+            st.header("Data Scaling")
+    
+            scaled_df = pd.DataFrame({'Scaled_X': Xs.flatten(), 'Scaled_y': ys.flatten()})
+            st.dataframe(scaled_df.head())
+    
+            # =====================================================
+            # WINDOWING
+            # =====================================================
+            st.header("Windowing Data")
+    
+            st.write(f"Shape X_train: {X_train.shape}")
+            st.write(f"Shape X_test:  {X_test.shape}")
 
     # ===========================================================
     # TAB 1 — GRU-PSO
