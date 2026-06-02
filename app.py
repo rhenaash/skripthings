@@ -358,6 +358,7 @@ if uploaded_file is not None:
             df_display = outliers.copy()
             if 'Tanggal' in df_display.columns:
                 df_display['Tanggal'] = df_display['Tanggal'].dt.strftime('%Y-%m-%d')
+            st.dataframe(df_display, hide_index=True)
             st.dataframe(outliers)
 
     # ===========================================================
