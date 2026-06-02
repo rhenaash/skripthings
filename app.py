@@ -164,7 +164,7 @@ PSOSL_iters = st.sidebar.number_input(
 
 c1 = st.sidebar.number_input("c1", value=2.0)
 c2 = st.sidebar.number_input("c2", value=2.0)
-w  = st.sidebar.number_input("w",  value=0.7)
+w  = st.sidebar.number_input("w",  value=0.9)
 
 PSOSL_options = {'c1': c1, 'c2': c2, 'w': w}
 
