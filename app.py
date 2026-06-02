@@ -417,7 +417,7 @@ if uploaded_file is not None:
                                 try:
                                     SEED = 49
                                     tf.random.set_seed(SEED)
-                                    random.seed(181)
+                                    random.seed(SEED)
                                     clear_session()
     
                                     model = Sequential([
@@ -498,7 +498,7 @@ if uploaded_file is not None:
                     # =====================================================
                     # LOOP PSO
                     # =====================================================
-                    tf.random.set_seed(181)
+                    tf.random.set_seed(127)
                     max_iter_colab = df_colab_cost['iteration'].max()
     
                     for it in range(PSOSL_iters):
