@@ -416,7 +416,7 @@ if uploaded_file is not None:
     
                                 try:
                                     SEED = 49
-                                    tf.random.set_seed(189)
+                                    tf.random.set_seed(181)
                                     random.seed(49)
                                     clear_session()
     
