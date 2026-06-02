@@ -313,7 +313,7 @@ if uploaded_file is not None:
     # TAB 0 — DESKRIPSI DATA
     # ===========================================================
     with tab0:
-    with st.container(border=True):
+        with st.container(border=True):
 
         # =====================================================
         # TIME SERIES PLOT
@@ -386,7 +386,7 @@ if uploaded_file is not None:
     # TAB 1 — GRU-PSO
     # ===========================================================
     with tab1:
-    with st.container(border=True):
+        with st.container(border=True):
 
         if st.button("Train GRU-PSO"):
 
@@ -780,7 +780,7 @@ if uploaded_file is not None:
     # TAB 2 — GRU STANDAR
     # ===========================================================
     with tab2:
-    with st.container(border=True):
+        with st.container(border=True):
 
         st.subheader("GRU Standar")
 
@@ -965,7 +965,7 @@ if uploaded_file is not None:
     # TAB 3 — PERBANDINGAN MODEL
     # ===========================================================
     with tab3:
-    with st.container(border=True):
+        with st.container(border=True):
 
         st.header("Perbandingan Model GRU-PSO vs GRU Standar")
 
