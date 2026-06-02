@@ -355,6 +355,9 @@ if uploaded_file is not None:
             st.pyplot(fig_box)
     
             st.write(f"Jumlah Outlier ditemukan: {len(outliers)}")
+            df_display = outliers.copy()
+            if 'Tanggal' in df_display.columns:
+                df_display['Tanggal'] = df_display['Tanggal'].dt.date
             st.dataframe(outliers)
 
     # ===========================================================
