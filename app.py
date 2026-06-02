@@ -360,11 +360,6 @@ if uploaded_file is not None:
             # =====================================================
             st.header("Outlier Detection")
     
-            fig_box = plt.figure(figsize=(10, 5))
-            sns.boxplot(x=emas['Terakhir'], color='gold')
-            plt.title('Boxplot Harga Emas (AGU/IDR)')
-            st.pyplot(fig_box)
-    
             st.write(f"Jumlah Outlier ditemukan: {len(outliers)}")
             df_display = outliers.copy()
             df_display['Tanggal'] = pd.to_datetime(
