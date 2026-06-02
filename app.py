@@ -107,11 +107,11 @@ REF_ITER_MAX    = 10
 # CONFIG PAGE
 # =====================================================
 st.set_page_config(
-    page_title="GRU-PSO Gold Forecasting",
+    page_title="GRU-PSO Gold Price Forecasting",
     layout="wide"
 )
 
-st.title("GRU-PSO Forecasting Harga Emas")
+st.title("GRU-PSO Gold Price Forecasting")
 
 # =====================================================
 # INISIALISASI SESSION STATE
@@ -169,7 +169,7 @@ w  = st.sidebar.number_input("w",  value=0.9)
 PSOSL_options = {'c1': c1, 'c2': c2, 'w': w}
 
 st.sidebar.markdown("---")
-st.sidebar.subheader("Range Parameter PSO")
+st.sidebar.subheader("Konfigurasi Hyperparameter Tuning (PSO)")
 
 col_unit  = st.sidebar.columns(2)
 unit_min  = col_unit[0].number_input("Unit Min",    min_value=1,      value=16,   step=1)
@@ -230,7 +230,7 @@ PSOSL_bounds = (
 )
 
 uploaded_file = st.file_uploader(
-    "Upload Dataset",
+    "Unggah Data",
     type=['csv', 'xlsx']
 )
 
