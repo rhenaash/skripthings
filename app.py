@@ -708,8 +708,7 @@ if uploaded_file is not None:
                         'RMSE_Rp':     round(rmse_PSOSL, 2),
                         'MAE_Rp':      round(mae_PSOSL, 2),
                         'MAPE_%':      round(mape_PSOSL, 4),
-                        'Epoch_Final': best_epochs_PSOSL,
-                        'Mode':        'CSV Cost' if use_colab_cost else 'Pure Training'
+                        'Epoch_Final': best_epochs_PSOSL
                     }
     
                     df_PSOSL_results = pd.DataFrame([result_entry_PSOSL])
