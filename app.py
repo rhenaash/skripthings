@@ -783,8 +783,6 @@ if uploaded_file is not None:
             col5.metric("Batch",   GS_BATCH)
             col6.metric("Epoch",   GS_EPOCH)
     
-            st.caption(f"File bobot model: `{GS_MODEL_FILE}`")
-    
             if st.button("Train GRU Standar"):
     
                 with st.spinner("Training GRU Standar..."):
@@ -820,10 +818,8 @@ if uploaded_file is not None:
                     X_test_gs  = X_seq_gs[dtrain_end_gs:].reshape(-1, GS_WINDOW, 1).astype(np.float64)
                     y_test_gs  = y_seq_gs[dtrain_end_gs:]
     
-                    st.write(f"Shape X_train GS: {X_train_gs.shape} | Shape X_test GS: {X_test_gs.shape}")
-    
                     # =====================================================
-                    # A. REAL TRAINING
+                    # A. TRAINING
                     # =====================================================
                     clear_session()
                     reset_seeds()
