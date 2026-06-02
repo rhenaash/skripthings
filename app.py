@@ -556,7 +556,6 @@ if uploaded_file is not None:
                             'Learning Rate': optimizer.swarm.best_pos_PSOSL[1],
                             'Batch Size':    int(np.round(optimizer.swarm.best_pos_PSOSL[2])),
                             'Dropout':       optimizer.swarm.best_pos_PSOSL[3],
-                            'Sumber Cost':   'CSV' if (use_colab_cost and (it + 1) <= max_iter_colab) else 'Pure Training'
                         }
     
                         iteration_results.append(current_result)
