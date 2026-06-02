@@ -624,12 +624,19 @@ if uploaded_file is not None:
                         optimizer=Adam(learning_rate=best_lr_PSOSL),
                         loss='mse'
                     )
-    
+
+                    early_stop = EarlyStopping(
+                        monitor='val_loss',
+                        patience=5,
+                        restore_best_weights=True
+                    )
+
                     history_final = GRU_PSOSL.fit(
                         X_train, y_train,
                         epochs=best_epochs_PSOSL,
                         batch_size=best_batch_PSOSL,
                         validation_split=0.2,
+                        callbacks=[early_stop],
                         verbose=1
                     )
     
