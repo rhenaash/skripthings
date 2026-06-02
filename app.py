@@ -101,7 +101,7 @@ REF_DROPOUT_MAX = 0.5
 REF_EPOCH       = 50
 REF_PARTICLES   = 20
 REF_ITER_MIN    = 1
-REF_ITER_MAX    = 20
+REF_ITER_MAX    = 10
 
 # =====================================================
 # CONFIG PAGE
@@ -162,8 +162,8 @@ PSOSL_iters = st.sidebar.number_input(
     step=1
 )
 
-c1 = st.sidebar.number_input("c1", value=2.0)
-c2 = st.sidebar.number_input("c2", value=2.0)
+c1 = st.sidebar.number_input("c1", value=1.5)
+c2 = st.sidebar.number_input("c2", value=1.5)
 w  = st.sidebar.number_input("w",  value=0.9)
 
 PSOSL_options = {'c1': c1, 'c2': c2, 'w': w}
