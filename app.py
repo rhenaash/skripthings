@@ -306,7 +306,7 @@ if uploaded_file is not None:
         "GRU-PSO",
         "GRU Standar",
         "Perbandingan Model",
-        "Prediksi ke Depan"
+        "Prediksi"
     ])
 
     # ===========================================================
@@ -1050,7 +1050,7 @@ if uploaded_file is not None:
                     st.success(f"Model terbaik berdasarkan MAPE terkecil: **{best_model_name}**")
 
     # ===========================================================
-    # TAB 4 — PREDIKSI KE DEPAN
+    # TAB 4 — PREDIKSI
     # ===========================================================
     with tab4:
         with st.container(border=True):
