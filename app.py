@@ -356,31 +356,6 @@ if uploaded_file is not None:
     
             st.write(f"Jumlah Outlier ditemukan: {len(outliers)}")
             st.dataframe(outliers)
-    
-            # =====================================================
-            # SPLIT DATA
-            # =====================================================
-            st.header("Split Data")
-    
-            col1, col2 = st.columns(2)
-            col1.metric("Jumlah Data Train", n_train)
-            col2.metric("Jumlah Data Test",  n - n_train)
-    
-            # =====================================================
-            # SCALING
-            # =====================================================
-            st.header("Data Scaling")
-    
-            scaled_df = pd.DataFrame({'Scaled_X': Xs.flatten(), 'Scaled_y': ys.flatten()})
-            st.dataframe(scaled_df.head())
-    
-            # =====================================================
-            # WINDOWING
-            # =====================================================
-            st.header("Windowing Data")
-    
-            st.write(f"Shape X_train: {X_train.shape}")
-            st.write(f"Shape X_test:  {X_test.shape}")
 
     # ===========================================================
     # TAB 1 — GRU-PSO
