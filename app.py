@@ -498,7 +498,7 @@ if uploaded_file is not None:
                     # =====================================================
                     # LOOP PSO
                     # =====================================================
-                    tf.random.set_seed(127)
+                    tf.random.set_seed(49)
                     max_iter_colab = df_colab_cost['iteration'].max()
     
                     for it in range(PSOSL_iters):
@@ -612,7 +612,7 @@ if uploaded_file is not None:
                     # =====================================================
                     # FINAL TRAINING
                     # =====================================================
-                    np.random.seed(49)
+                    np.random.seed(127)
                     GRU_PSOSL = Sequential([
                         Input(shape=(X_train.shape[1], X_train.shape[2])),
                         GRU(units=best_units_PSOSL, activation='tanh'),
