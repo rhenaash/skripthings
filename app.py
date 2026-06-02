@@ -1067,7 +1067,7 @@ if uploaded_file is not None:
     # TAB 4 — PREDIKSI KE DEPAN
     # ===========================================================
     with tab4:
-    with st.container(border=True):
+        with st.container(border=True):
 
             st.header("Prediksi 5 Periode ke Depan")
     
