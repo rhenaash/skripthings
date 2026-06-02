@@ -416,7 +416,7 @@ if uploaded_file is not None:
     
                                 try:
                                     SEED = 49
-                                    tf.random.set_seed(188)
+                                    tf.random.set_seed(189)
                                     random.seed(49)
                                     clear_session()
     
@@ -625,18 +625,11 @@ if uploaded_file is not None:
                         loss='mse'
                     )
     
-                    early_stop = EarlyStopping(
-                        monitor='val_loss',
-                        patience=7,
-                        restore_best_weights=True
-                    )
-    
                     history_final = GRU_PSOSL.fit(
                         X_train, y_train,
                         epochs=best_epochs_PSOSL,
                         batch_size=best_batch_PSOSL,
                         validation_split=0.2,
-                        callbacks=[early_stop],
                         verbose=1
                     )
     
