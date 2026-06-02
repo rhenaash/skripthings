@@ -320,9 +320,9 @@ if uploaded_file is not None:
             # =====================================================
             st.header("Time Series Plot")
             
-            col1, col2, col3 = st.columns([3, 4, 3])
+            col1, col2, col3 = st.columns([5, 6, 5])
             with col2:
-                fig_ts = plt.figure(figsize=(10, 3))
+                fig_ts = plt.figure(figsize=(6, 2))
                 plt.plot(emas['Terakhir'].values, color='royalblue', linewidth=1.5)
                 plt.title('Time Series Harga Emas (IDR/Gram)', fontsize=14)
                 plt.xlabel('Indeks Waktu')
