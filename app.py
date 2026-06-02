@@ -320,7 +320,7 @@ if uploaded_file is not None:
             # =====================================================
             st.header("Time Series Plot")
             
-            col1, col2, col3 = st.columns([1, 6, 1])
+            col1, col2, col3 = st.columns([3, 4, 3])
             with col2:
                 fig_ts = plt.figure(figsize=(10, 3))
                 plt.plot(emas['Terakhir'].values, color='royalblue', linewidth=1.5)
