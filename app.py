@@ -320,15 +320,17 @@ if uploaded_file is not None:
             # =====================================================
             st.header("Time Series Plot")
             
-            fig_ts = plt.figure(figsize=(8, 3))
-            plt.plot(emas['Terakhir'].values, color='royalblue', linewidth=1.5)
-            plt.title('Time Series Harga Emas (IDR/Gram)', fontsize=14)
-            plt.xlabel('Indeks Waktu')
-            plt.ylabel('Harga Emas (Rp)')
-            plt.grid(True, alpha=0.3)
-            plt.tight_layout()
-            st.pyplot(fig_ts, use_container_width=True)
-
+            col1, col2, col3 = st.columns([1, 6, 1])
+            with col2:
+                fig_ts = plt.figure(figsize=(10, 3))
+                plt.plot(emas['Terakhir'].values, color='royalblue', linewidth=1.5)
+                plt.title('Time Series Harga Emas (IDR/Gram)', fontsize=14)
+                plt.xlabel('Indeks Waktu')
+                plt.ylabel('Harga Emas (Rp)')
+                plt.grid(True, alpha=0.3)
+                plt.tight_layout()
+                st.pyplot(fig_ts, use_container_width=True)
+                
             # =====================================================
             # STATISTIK DESKRIPTIF
             # =====================================================
