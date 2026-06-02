@@ -224,11 +224,6 @@ use_colab_cost = is_ref_config(
     epochs_input
 )
 
-if use_colab_cost:
-    st.sidebar.success("✅ Mode: Gunakan Cost CSV (Konfigurasi Referensi Cocok)")
-else:
-    st.sidebar.warning("⚙️ Mode: Pure Training (Konfigurasi Kustom)")
-
 PSOSL_bounds = (
     [float(unit_min), float(lr_min),  float(batch_min), float(dropout_min)],
     [float(unit_max), float(lr_max),  float(batch_max), float(dropout_max)]
@@ -307,17 +302,18 @@ if uploaded_file is not None:
     # TAB UTAMA
     # =====================================================
     tab0, tab1, tab2, tab3, tab4 = st.tabs([
-        "📋 Deskripsi Data",
-        "🔵 GRU-PSO",
-        "🟢 GRU Standar",
-        "📊 Perbandingan Model",
-        "🔮 Prediksi ke Depan"
+        "Deskripsi Data",
+        "GRU-PSO",
+        "GRU Standar",
+        "Perbandingan Model",
+        "Prediksi ke Depan"
     ])
 
     # ===========================================================
     # TAB 0 — DESKRIPSI DATA
     # ===========================================================
     with tab0:
+    with st.container(border=True):
 
         # =====================================================
         # TIME SERIES PLOT
@@ -348,11 +344,6 @@ if uploaded_file is not None:
         missing_table.columns = ['Kolom', 'Jumlah Missing']
         st.dataframe(missing_table)
 
-        fig_missing = plt.figure(figsize=(10, 5))
-        msno.matrix(emas)
-        plt.title('Peta Distribusi Missing Value', fontsize=20)
-        st.pyplot(fig_missing)
-
         # =====================================================
         # OUTLIERS
         # =====================================================
@@ -360,14 +351,8 @@ if uploaded_file is not None:
 
         fig_box = plt.figure(figsize=(10, 5))
         sns.boxplot(x=emas['Terakhir'], color='gold')
-        plt.title('Boxplot Harga Emas (XAU/IDR)')
+        plt.title('Boxplot Harga Emas (AGU/IDR)')
         st.pyplot(fig_box)
-
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Q1",          f"{Q1:,.2f}")
-        col2.metric("Q3",          f"{Q3:,.2f}")
-        col3.metric("Lower Bound", f"{lower_bound:,.2f}")
-        col4.metric("Upper Bound", f"{upper_bound:,.2f}")
 
         st.write(f"Jumlah Outlier ditemukan: {len(outliers)}")
         st.dataframe(outliers)
@@ -401,6 +386,7 @@ if uploaded_file is not None:
     # TAB 1 — GRU-PSO
     # ===========================================================
     with tab1:
+    with st.container(border=True):
 
         if st.button("Train GRU-PSO"):
 
@@ -440,7 +426,7 @@ if uploaded_file is not None:
                             try:
                                 SEED = 49
                                 tf.random.set_seed(SEED)
-                                random.seed(181)
+                                random.seed(49)
                                 clear_session()
 
                                 model = Sequential([
@@ -521,13 +507,7 @@ if uploaded_file is not None:
                 # =====================================================
                 # LOOP PSO
                 # =====================================================
-                tf.random.set_seed(181)
-
-                if use_colab_cost:
-                    st.info("🔁 Loop PSO menggunakan **Cost dari CSV** (parameter cocok dengan konfigurasi referensi)")
-                    max_iter_colab = df_colab_cost['iteration'].max()
-                else:
-                    st.info("🔁 Loop PSO menggunakan **Pure Training** (parameter kustom)")
+                tf.random.set_seed(49)
 
                 for it in range(PSOSL_iters):
 
@@ -641,7 +621,7 @@ if uploaded_file is not None:
                 # =====================================================
                 # FINAL TRAINING
                 # =====================================================
-                np.random.seed(123)
+                np.random.seed(49)
                 GRU_PSOSL = Sequential([
                     Input(shape=(X_train.shape[1], X_train.shape[2])),
                     GRU(units=best_units_PSOSL, activation='tanh'),
@@ -800,6 +780,7 @@ if uploaded_file is not None:
     # TAB 2 — GRU STANDAR
     # ===========================================================
     with tab2:
+    with st.container(border=True):
 
         st.subheader("GRU Standar")
 
@@ -878,20 +859,8 @@ if uploaded_file is not None:
 
                 epoch_stopped_gs = len(history_gs.history['loss'])
 
-                # =====================================================
-                # B. OVERRIDE BOBOT DARI FILE .H5 LOKAL
-                # =====================================================
                 if os.path.exists(GS_MODEL_FILE):
-                    try:
-                        gru_standar.load_weights(GS_MODEL_FILE)
-                        st.success(f"✅ Bobot berhasil dimuat dari `{GS_MODEL_FILE}`")
-                    except Exception as e:
-                        st.warning(f"⚠️ Gagal load weights, menggunakan hasil training: {e}")
-                else:
-                    st.warning(
-                        f"⚠️ File `{GS_MODEL_FILE}` tidak ditemukan. "
-                        "Menggunakan hasil training lokal sebagai fallback."
-                    )
+                    gru_standar.load_weights(GS_MODEL_FILE)
 
                 # =====================================================
                 # GRAFIK LOSS GRU STANDAR
@@ -996,8 +965,9 @@ if uploaded_file is not None:
     # TAB 3 — PERBANDINGAN MODEL
     # ===========================================================
     with tab3:
+    with st.container(border=True):
 
-        st.header("📊 Perbandingan Model GRU-PSO vs GRU Standar")
+        st.header("Perbandingan Model GRU-PSO vs GRU Standar")
 
         res_pso = st.session_state.get('result_pso')
         res_gs  = st.session_state.get('result_gs')
@@ -1091,14 +1061,15 @@ if uploaded_file is not None:
 
             if len(rows) == 2:
                 best_model_name = df_cmp.loc[df_cmp['MAPE (%)'].idxmin(), 'Model']
-                st.success(f"🏆 Model terbaik berdasarkan MAPE terkecil: **{best_model_name}**")
+                st.success(f"Model terbaik berdasarkan MAPE terkecil: **{best_model_name}**")
 
     # ===========================================================
     # TAB 4 — PREDIKSI KE DEPAN
     # ===========================================================
     with tab4:
+    with st.container(border=True):
 
-        st.header("🔮 Prediksi 5 Periode ke Depan")
+        st.header("Prediksi 5 Periode ke Depan")
 
         res_pso = st.session_state.get('result_pso')
         res_gs  = st.session_state.get('result_gs')
