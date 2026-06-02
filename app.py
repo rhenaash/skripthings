@@ -96,12 +96,12 @@ REF_BATCH_MIN   = 16
 REF_BATCH_MAX   = 128
 REF_LR_MIN      = 0.0001
 REF_LR_MAX      = 0.01
-REF_DROPOUT_MIN = 0.01
+REF_DROPOUT_MIN = 0.0
 REF_DROPOUT_MAX = 0.5
 REF_EPOCH       = 50
 REF_PARTICLES   = 20
 REF_ITER_MIN    = 1
-REF_ITER_MAX    = 10
+REF_ITER_MAX    = 20
 
 # =====================================================
 # CONFIG PAGE
