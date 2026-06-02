@@ -184,7 +184,7 @@ lr_min    = col_lr[0].number_input("LR Min", min_value=0.00001, value=0.0001, fo
 lr_max    = col_lr[1].number_input("LR Max", min_value=0.00001, value=0.01,   format="%.5f", step=0.00001)
 
 col_do      = st.sidebar.columns(2)
-dropout_min = col_do[0].number_input("Dropout Min", min_value=0.0, value=0.01, format="%.3f", step=0.001)
+dropout_min = col_do[0].number_input("Dropout Min", min_value=0.0, value=0.0, format="%.3f", step=0.001)
 dropout_max = col_do[1].number_input("Dropout Max", min_value=0.0, value=0.5,  format="%.3f", step=0.001)
 
 epochs_input = st.sidebar.number_input("Epoch Final", min_value=1, value=50, step=1)
@@ -417,7 +417,7 @@ if uploaded_file is not None:
                                 try:
                                     SEED = 49
                                     tf.random.set_seed(SEED)
-                                    random.seed(SEED)
+                                    random.seed(189)
                                     clear_session()
     
                                     model = Sequential([
@@ -498,7 +498,7 @@ if uploaded_file is not None:
                     # =====================================================
                     # LOOP PSO
                     # =====================================================
-                    tf.random.set_seed(181)
+                    tf.random.set_seed(49)
                     max_iter_colab = df_colab_cost['iteration'].max()
     
                     for it in range(PSOSL_iters):
@@ -612,7 +612,7 @@ if uploaded_file is not None:
                     # =====================================================
                     # FINAL TRAINING
                     # =====================================================
-                    np.random.seed(19)
+                    np.random.seed(189)
                     GRU_PSOSL = Sequential([
                         Input(shape=(X_train.shape[1], X_train.shape[2])),
                         GRU(units=best_units_PSOSL, activation='tanh'),
