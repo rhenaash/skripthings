@@ -417,7 +417,7 @@ if uploaded_file is not None:
                                 try:
                                     SEED = 49
                                     tf.random.set_seed(SEED)
-                                    random.seed(SEED)
+                                    random.seed(189)
                                     clear_session()
     
                                     model = Sequential([
@@ -612,7 +612,7 @@ if uploaded_file is not None:
                     # =====================================================
                     # FINAL TRAINING
                     # =====================================================
-                    np.random.seed(49)
+                    np.random.seed(123)
                     GRU_PSOSL = Sequential([
                         Input(shape=(X_train.shape[1], X_train.shape[2])),
                         GRU(units=best_units_PSOSL, activation='tanh'),
