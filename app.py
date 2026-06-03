@@ -969,7 +969,7 @@ if uploaded_file is not None:
                 
                 col1, col2, col3 = st.columns([3, 4, 3])
                 with col2:
-                    fig_cmp, ax = plt.subplots(figsize=(6, 2.5))
+                    fig_cmp, ax = plt.subplots(figsize=(8, 4))
                 
                     if res_pso is not None:
                         ax.plot(res_pso['y_test'][:min_len], label='Harga Aktual', color='royalblue', linewidth=2.5)
@@ -983,8 +983,8 @@ if uploaded_file is not None:
                         ax.plot(res_gs['y_pred'][:min_len], label='Prediksi GRU Standar', color='orange', linewidth=2, linestyle='-.')
                 
                     ax.set_title('Perbandingan Aktual vs Prediksi: GRU-PSO & GRU Standar', fontsize=14)
-                    ax.set_xlabel('Indeks Waktu (Data Testing)', fontsize=12)
-                    ax.set_ylabel('Harga Emas (Rp)', fontsize=12)
+                    ax.set_xlabel('Indeks Waktu (Data Testing)', fontsize=9)
+                    ax.set_ylabel('Harga Emas (Rp)', fontsize=)
                     ax.legend()
                     ax.grid(True, alpha=0.2)
                     plt.tight_layout()
@@ -1105,15 +1105,15 @@ if uploaded_file is not None:
     
                     col1, col2, col3 = st.columns([3, 4, 3])
                     with col2:
-                        fig_fwd, ax_fwd = plt.subplots(figsize=(6, 2.5))
+                        fig_fwd, ax_fwd = plt.subplots(figsize=(8, 3))
                         
                         ax_fwd.plot(x_hist, hist_values, label='Data Historis Harga Emas', color='royalblue', linewidth=2)
                         ax_fwd.plot(x_future, y_future_plot, label=f'Prediksi {n_future} Periode ke Depan ({best_model_name})',
                                     color='crimson', linewidth=2.5, linestyle='--', marker='o', markersize=6)
                         ax_fwd.axvline(x=n_hist - 1, color='gray', linestyle=':', linewidth=1.5, label='Batas Data Historis')
                         ax_fwd.set_title(f'Harga Emas: Historis & Prediksi {n_future} Periode ke Depan\n(Model: {best_model_name})', fontsize=14)
-                        ax_fwd.set_xlabel('Indeks Waktu', fontsize=12)
-                        ax_fwd.set_ylabel('Harga Emas (Rp)', fontsize=12)
+                        ax_fwd.set_xlabel('Indeks Waktu', fontsize=9)
+                        ax_fwd.set_ylabel('Harga Emas (Rp)', fontsize=9)
                         ax_fwd.legend()
                         ax_fwd.grid(True, alpha=0.2)
                         plt.tight_layout()
