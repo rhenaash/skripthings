@@ -320,7 +320,7 @@ if uploaded_file is not None:
             # =====================================================
             st.header("Time Series Plot")
             
-            col1, col2, col3 = st.columns([4, 5, 4])
+            col1, col2, col3 = st.columns([3, 4, 3])
             with col2:
                 fig_ts = plt.figure(figsize=(8, 3))
                 plt.plot(emas['Terakhir'].values, color='royalblue', linewidth=1.5)
@@ -650,8 +650,8 @@ if uploaded_file is not None:
                     gbest_loss_PSOSL = np.array(history_gbest_cost_PSOSL, dtype=np.float64)
                     iterations_PSOSL = np.arange(1, len(gbest_loss_PSOSL) + 1)
 
-                    col1, col2, col3, col4, col5 = st.columns([4, 5, 4])
-                    with col3:
+                    col1, col2, col3 = st.columns([3, 4, 3])
+                    with col2:
                     
                         fig_conv = plt.figure(figsize=(8, 4))
                         plt.plot(iterations_PSOSL, gbest_loss_PSOSL, marker='o')
@@ -666,8 +666,8 @@ if uploaded_file is not None:
                     # =====================================================
                     st.header("Grafik Loss GRU-PSO")
     
-                    col1, col2, col3, col4, col5 = st.columns([4, 5, 4])
-                    with col3:
+                    col1, col2, col3 = st.columns([3, 4, 3])
+                    with col2:
                     
                         fig_loss = plt.figure(figsize=(8, 4))
                         plt.plot(history_final.history['loss'],     label='Training Loss')
@@ -857,8 +857,8 @@ if uploaded_file is not None:
                     # =====================================================
                     st.header("Grafik Loss GRU Standar")
                     
-                    col1, col2, col3, col4, col5 = st.columns([4, 5, 4])
-                    with col3:
+                    col1, col2, col3 = st.columns([3, 4, 3])
+                    with col2:
                     
                         fig_loss_gs = plt.figure(figsize=(8, 4))
                         plt.plot(history_gs.history['loss'],     label='Training Loss')
