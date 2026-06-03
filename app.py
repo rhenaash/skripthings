@@ -641,26 +641,7 @@ if uploaded_file is not None:
                     os.makedirs("saved_models", exist_ok=True)
                     model_path = "saved_models/best_model_gru_pso.h5"
                     GRU_PSOSL.save(model_path)
-    
-                    # =====================================================
-                    # GRAFIK KONVERGENSI
-                    # =====================================================
-                    st.header("Grafik Konvergensi GRU-PSO")
-    
-                    gbest_loss_PSOSL = np.array(history_gbest_cost_PSOSL, dtype=np.float64)
-                    iterations_PSOSL = np.arange(1, len(gbest_loss_PSOSL) + 1)
 
-                    col1, col2, col3 = st.columns([3, 4, 3])
-                    with col2:
-                    
-                        fig_conv = plt.figure(figsize=(8, 4))
-                        plt.plot(iterations_PSOSL, gbest_loss_PSOSL, marker='o')
-                        plt.xlabel("Iterasi")
-                        plt.ylabel("Global Best Loss (MSE)")
-                        plt.title("Grafik Konvergensi GRU-PSO")
-                        plt.grid(True)
-                        st.pyplot(fig_conv)
-    
                     # =====================================================
                     # GRAFIK LOSS
                     # =====================================================
@@ -726,16 +707,19 @@ if uploaded_file is not None:
                     # ACTUAL VS PREDICTED
                     # =====================================================
                     st.header("Actual vs Predicted")
-    
-                    fig_pred = plt.figure(figsize=(14, 7))
-                    plt.plot(y_test_PSOSL,  label='Harga Aktual (Emas)',          color='royalblue', linewidth=2)
-                    plt.plot(y_pred_PSOSL,  label='Harga Prediksi Model GRU-PSO', color='green',     linewidth=2)
-                    plt.title('Model GRU-PSO: Aktual vs Prediksi Harga Emas Indonesia (IDR/Gram)', fontsize=14)
-                    plt.xlabel('Indeks Waktu (Data Testing)', fontsize=12)
-                    plt.ylabel('Harga Emas (Rp)',             fontsize=12)
-                    plt.legend()
-                    plt.grid(True, alpha=0.2)
-                    st.pyplot(fig_pred)
+
+                    col1, col2, col3 = st.columns([3, 4, 3])
+                    with col2:
+                    
+                        fig_pred = plt.figure(figsize=(8, 4))
+                        plt.plot(y_test_PSOSL,  label='Harga Aktual (Emas)',          color='royalblue', linewidth=2)
+                        plt.plot(y_pred_PSOSL,  label='Harga Prediksi Model GRU-PSO', color='green',     linewidth=2)
+                        plt.title('Model GRU-PSO: Aktual vs Prediksi Harga Emas Indonesia (IDR/Gram)', fontsize=14)
+                        plt.xlabel('Indeks Waktu (Data Testing)', fontsize=12)
+                        plt.ylabel('Harga Emas (Rp)',             fontsize=12)
+                        plt.legend()
+                        plt.grid(True, alpha=0.2)
+                        st.pyplot(fig_pred)
     
                     # =====================================================
                     # SIMPAN KE SESSION STATE
@@ -914,17 +898,20 @@ if uploaded_file is not None:
                     # ACTUAL VS PREDICTED GRU STANDAR
                     # =====================================================
                     st.header("Actual vs Predicted — GRU Standar")
+
+                    col1, col2, col3 = st.columns([3, 4, 3])
+                    with col2:
     
-                    fig_pred_gs = plt.figure(figsize=(14, 7))
-                    plt.plot(y_test_gs_inv, label='Harga Aktual (Emas)',              color='royalblue', linewidth=2)
-                    plt.plot(y_pred_gs,     label='Harga Prediksi Model GRU Standar', color='orange',    linewidth=2)
-                    plt.title('Model GRU Standar: Aktual vs Prediksi Harga Emas Indonesia (IDR/Gram)', fontsize=14)
-                    plt.xlabel('Indeks Waktu (Data Testing)', fontsize=12)
-                    plt.ylabel('Harga Emas (Rp)',             fontsize=12)
-                    plt.legend()
-                    plt.grid(True, alpha=0.2)
-                    st.pyplot(fig_pred_gs)
-    
+                        fig_pred_gs = plt.figure(figsize=(8, 4))
+                        plt.plot(y_test_gs_inv, label='Harga Aktual (Emas)',              color='royalblue', linewidth=2)
+                        plt.plot(y_pred_gs,     label='Harga Prediksi Model GRU Standar', color='orange',    linewidth=2)
+                        plt.title('Model GRU Standar: Aktual vs Prediksi Harga Emas Indonesia (IDR/Gram)', fontsize=14)
+                        plt.xlabel('Indeks Waktu (Data Testing)', fontsize=12)
+                        plt.ylabel('Harga Emas (Rp)',             fontsize=12)
+                        plt.legend()
+                        plt.grid(True, alpha=0.2)
+                        st.pyplot(fig_pred_gs)
+        
                     # =====================================================
                     # SIMPAN KE SESSION STATE
                     # =====================================================
