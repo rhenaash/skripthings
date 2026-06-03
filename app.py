@@ -959,57 +959,36 @@ if uploaded_file is not None:
                 # GRAFIK PERBANDINGAN KURVA
                 # =====================================================
                 st.subheader("Kurva Aktual vs Prediksi (Semua Model)")
-    
-                # Tentukan acuan panjang y_test dari model yang tersedia
+
                 if res_pso is not None and res_gs is not None:
                     min_len = min(len(res_pso['y_test']), len(res_gs['y_test']))
                 elif res_pso is not None:
                     min_len = len(res_pso['y_test'])
                 else:
                     min_len = len(res_gs['y_test'])
-    
-                fig_cmp, ax = plt.subplots(figsize=(14, 7))
-    
-                # Kurva aktual — ambil dari model mana saja yang tersedia
-                if res_pso is not None:
-                    ax.plot(
-                        res_pso['y_test'][:min_len],
-                        label='Harga Aktual',
-                        color='royalblue',
-                        linewidth=2.5
-                    )
-                else:
-                    ax.plot(
-                        res_gs['y_test'][:min_len],
-                        label='Harga Aktual',
-                        color='royalblue',
-                        linewidth=2.5
-                    )
-    
-                if res_pso is not None:
-                    ax.plot(
-                        res_pso['y_pred'][:min_len],
-                        label='Prediksi GRU-PSO',
-                        color='green',
-                        linewidth=2,
-                        linestyle='--'
-                    )
-    
-                if res_gs is not None:
-                    ax.plot(
-                        res_gs['y_pred'][:min_len],
-                        label='Prediksi GRU Standar',
-                        color='orange',
-                        linewidth=2,
-                        linestyle='-.'
-                    )
-    
-                ax.set_title('Perbandingan Aktual vs Prediksi: GRU-PSO & GRU Standar', fontsize=14)
-                ax.set_xlabel('Indeks Waktu (Data Testing)', fontsize=12)
-                ax.set_ylabel('Harga Emas (Rp)', fontsize=12)
-                ax.legend()
-                ax.grid(True, alpha=0.2)
-                st.pyplot(fig_cmp)
+                
+                col1, col2, col3 = st.columns([3, 4, 3])
+                with col2:
+                    fig_cmp, ax = plt.subplots(figsize=(6, 2.5))
+                
+                    if res_pso is not None:
+                        ax.plot(res_pso['y_test'][:min_len], label='Harga Aktual', color='royalblue', linewidth=2.5)
+                    else:
+                        ax.plot(res_gs['y_test'][:min_len], label='Harga Aktual', color='royalblue', linewidth=2.5)
+                
+                    if res_pso is not None:
+                        ax.plot(res_pso['y_pred'][:min_len], label='Prediksi GRU-PSO', color='green', linewidth=2, linestyle='--')
+                
+                    if res_gs is not None:
+                        ax.plot(res_gs['y_pred'][:min_len], label='Prediksi GRU Standar', color='orange', linewidth=2, linestyle='-.')
+                
+                    ax.set_title('Perbandingan Aktual vs Prediksi: GRU-PSO & GRU Standar', fontsize=14)
+                    ax.set_xlabel('Indeks Waktu (Data Testing)', fontsize=12)
+                    ax.set_ylabel('Harga Emas (Rp)', fontsize=12)
+                    ax.legend()
+                    ax.grid(True, alpha=0.2)
+                    plt.tight_layout()
+                    st.pyplot(fig_cmp, use_container_width=True)
     
                 # =====================================================
                 # TABEL PERBANDINGAN METRIK
@@ -1124,44 +1103,22 @@ if uploaded_file is not None:
                     # Sambungkan: titik terakhir historis + prediksi
                     y_future_plot = np.concatenate([[hist_values[-1]], future_preds])
     
-                    fig_fwd, ax_fwd = plt.subplots(figsize=(14, 7))
-    
-                    ax_fwd.plot(
-                        x_hist,
-                        hist_values,
-                        label='Data Historis Harga Emas',
-                        color='royalblue',
-                        linewidth=2
-                    )
-                    ax_fwd.plot(
-                        x_future,
-                        y_future_plot,
-                        label=f'Prediksi {n_future} Periode ke Depan ({best_model_name})',
-                        color='crimson',
-                        linewidth=2.5,
-                        linestyle='--',
-                        marker='o',
-                        markersize=6
-                    )
-                    # Garis vertikal pemisah historis–prediksi
-                    ax_fwd.axvline(
-                        x=n_hist - 1,
-                        color='gray',
-                        linestyle=':',
-                        linewidth=1.5,
-                        label='Batas Data Historis'
-                    )
-    
-                    ax_fwd.set_title(
-                        f'Harga Emas: Historis & Prediksi {n_future} Periode ke Depan\n(Model: {best_model_name})',
-                        fontsize=14
-                    )
-                    ax_fwd.set_xlabel('Indeks Waktu', fontsize=12)
-                    ax_fwd.set_ylabel('Harga Emas (Rp)', fontsize=12)
-                    ax_fwd.legend()
-                    ax_fwd.grid(True, alpha=0.2)
-                    st.pyplot(fig_fwd)
-    
+                    col1, col2, col3 = st.columns([3, 4, 3])
+                    with col2:
+                        fig_fwd, ax_fwd = plt.subplots(figsize=(6, 2.5))
+                        
+                        ax_fwd.plot(x_hist, hist_values, label='Data Historis Harga Emas', color='royalblue', linewidth=2)
+                        ax_fwd.plot(x_future, y_future_plot, label=f'Prediksi {n_future} Periode ke Depan ({best_model_name})',
+                                    color='crimson', linewidth=2.5, linestyle='--', marker='o', markersize=6)
+                        ax_fwd.axvline(x=n_hist - 1, color='gray', linestyle=':', linewidth=1.5, label='Batas Data Historis')
+                        ax_fwd.set_title(f'Harga Emas: Historis & Prediksi {n_future} Periode ke Depan\n(Model: {best_model_name})', fontsize=14)
+                        ax_fwd.set_xlabel('Indeks Waktu', fontsize=12)
+                        ax_fwd.set_ylabel('Harga Emas (Rp)', fontsize=12)
+                        ax_fwd.legend()
+                        ax_fwd.grid(True, alpha=0.2)
+                        plt.tight_layout()
+                        st.pyplot(fig_fwd, use_container_width=True)
+                        
                     # =====================================================
                     # TABEL HASIL PREDIKSI
                     # =====================================================
