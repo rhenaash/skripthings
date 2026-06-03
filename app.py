@@ -653,7 +653,7 @@ if uploaded_file is not None:
                     col1, col2, col3, col4, col5 = st.columns([4, 5, 4])
                     with col3:
                     
-                        fig_ts = plt.figure(figsize=(8, 4))
+                        fig_conv = plt.figure(figsize=(8, 4))
                         plt.plot(iterations_PSOSL, gbest_loss_PSOSL, marker='o')
                         plt.xlabel("Iterasi")
                         plt.ylabel("Global Best Loss (MSE)")
@@ -669,7 +669,7 @@ if uploaded_file is not None:
                     col1, col2, col3, col4, col5 = st.columns([4, 5, 4])
                     with col3:
                     
-                        fig_ts = plt.figure(figsize=(8, 4))
+                        fig_loss = plt.figure(figsize=(8, 4))
                         plt.plot(history_final.history['loss'],     label='Training Loss')
                         plt.plot(history_final.history['val_loss'], label='Validation Loss')
                         plt.title('Grafik Loss Model GRU-PSO')
@@ -860,7 +860,7 @@ if uploaded_file is not None:
                     col1, col2, col3, col4, col5 = st.columns([4, 5, 4])
                     with col3:
                     
-                        fig_ts = plt.figure(figsize=(8, 4))
+                        fig_loss_gs = plt.figure(figsize=(8, 4))
                         plt.plot(history_gs.history['loss'],     label='Training Loss')
                         plt.plot(history_gs.history['val_loss'], label='Validation Loss')
                         plt.title('Grafik Loss Model GRU Standar')
