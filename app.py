@@ -649,8 +649,11 @@ if uploaded_file is not None:
     
                     gbest_loss_PSOSL = np.array(history_gbest_cost_PSOSL, dtype=np.float64)
                     iterations_PSOSL = np.arange(1, len(gbest_loss_PSOSL) + 1)
-    
-                    fig_conv = plt.figure(figsize=(8, 5))
+
+                    col1, col2, col3, col4, col5 = st.columns([4, 5, 4])
+                    with col3:
+                    
+                    fig_ts = plt.figure(figsize=(8, 4))
                     plt.plot(iterations_PSOSL, gbest_loss_PSOSL, marker='o')
                     plt.xlabel("Iterasi")
                     plt.ylabel("Global Best Loss (MSE)")
@@ -663,7 +666,10 @@ if uploaded_file is not None:
                     # =====================================================
                     st.header("Grafik Loss GRU-PSO")
     
-                    fig_loss = plt.figure(figsize=(10, 5))
+                    col1, col2, col3, col4, col5 = st.columns([4, 5, 4])
+                    with col3:
+                    
+                    fig_ts = plt.figure(figsize=(8, 4))
                     plt.plot(history_final.history['loss'],     label='Training Loss')
                     plt.plot(history_final.history['val_loss'], label='Validation Loss')
                     plt.title('Grafik Loss Model GRU-PSO')
