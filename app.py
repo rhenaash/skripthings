@@ -653,13 +653,13 @@ if uploaded_file is not None:
                     col1, col2, col3, col4, col5 = st.columns([4, 5, 4])
                     with col3:
                     
-                    fig_ts = plt.figure(figsize=(8, 4))
-                    plt.plot(iterations_PSOSL, gbest_loss_PSOSL, marker='o')
-                    plt.xlabel("Iterasi")
-                    plt.ylabel("Global Best Loss (MSE)")
-                    plt.title("Grafik Konvergensi GRU-PSO")
-                    plt.grid(True)
-                    st.pyplot(fig_conv)
+                        fig_ts = plt.figure(figsize=(8, 4))
+                        plt.plot(iterations_PSOSL, gbest_loss_PSOSL, marker='o')
+                        plt.xlabel("Iterasi")
+                        plt.ylabel("Global Best Loss (MSE)")
+                        plt.title("Grafik Konvergensi GRU-PSO")
+                        plt.grid(True)
+                        st.pyplot(fig_conv)
     
                     # =====================================================
                     # GRAFIK LOSS
@@ -669,15 +669,15 @@ if uploaded_file is not None:
                     col1, col2, col3, col4, col5 = st.columns([4, 5, 4])
                     with col3:
                     
-                    fig_ts = plt.figure(figsize=(8, 4))
-                    plt.plot(history_final.history['loss'],     label='Training Loss')
-                    plt.plot(history_final.history['val_loss'], label='Validation Loss')
-                    plt.title('Grafik Loss Model GRU-PSO')
-                    plt.xlabel('Epoch')
-                    plt.ylabel('Loss (MSE)')
-                    plt.legend()
-                    plt.grid(True)
-                    st.pyplot(fig_loss)
+                        fig_ts = plt.figure(figsize=(8, 4))
+                        plt.plot(history_final.history['loss'],     label='Training Loss')
+                        plt.plot(history_final.history['val_loss'], label='Validation Loss')
+                        plt.title('Grafik Loss Model GRU-PSO')
+                        plt.xlabel('Epoch')
+                        plt.ylabel('Loss (MSE)')
+                        plt.legend()
+                        plt.grid(True)
+                        st.pyplot(fig_loss)
     
                     # =====================================================
                     # EVALUATION
@@ -856,16 +856,19 @@ if uploaded_file is not None:
                     # GRAFIK LOSS GRU STANDAR
                     # =====================================================
                     st.header("Grafik Loss GRU Standar")
-    
-                    fig_loss_gs = plt.figure(figsize=(10, 5))
-                    plt.plot(history_gs.history['loss'],     label='Training Loss')
-                    plt.plot(history_gs.history['val_loss'], label='Validation Loss')
-                    plt.title('Grafik Loss Model GRU Standar')
-                    plt.xlabel('Epoch')
-                    plt.ylabel('Loss (MSE)')
-                    plt.legend()
-                    plt.grid(True)
-                    st.pyplot(fig_loss_gs)
+                    
+                    col1, col2, col3, col4, col5 = st.columns([4, 5, 4])
+                    with col3:
+                    
+                        fig_ts = plt.figure(figsize=(8, 4))
+                        plt.plot(history_gs.history['loss'],     label='Training Loss')
+                        plt.plot(history_gs.history['val_loss'], label='Validation Loss')
+                        plt.title('Grafik Loss Model GRU Standar')
+                        plt.xlabel('Epoch')
+                        plt.ylabel('Loss (MSE)')
+                        plt.legend()
+                        plt.grid(True)
+                        st.pyplot(fig_loss_gs)
     
                     # =====================================================
                     # EVALUASI GRU STANDAR
