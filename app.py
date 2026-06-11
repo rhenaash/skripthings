@@ -557,8 +557,8 @@ if uploaded_file is not None:
     
                         iteration_results.append(current_result)
     
-                        r1 = .rand(*optimizer.swarm.position.shape).astype(np.float64)
-                        r2 = .rand(*optimizer.swarm.position.shape).astype(np.float64)
+                        r1 = np.random.rand(*optimizer.swarm.position.shape).astype(np.float64)
+                        r2 = np.random.rand(*optimizer.swarm.position.shape).astype(np.float64)
     
                         optimizer.swarm.velocity = (
                             PSOSL_options['w'] * optimizer.swarm.velocity
