@@ -690,10 +690,7 @@ if uploaded_file is not None:
                         'LR':          round(best_lr_PSOSL, 6),
                         'Train_Loss':  round(train_loss_PSOSL, 8),
                         'Val_Loss':    round(val_loss_PSOSL, 8),
-                        'RMSE_Rp':     round(rmse_PSOSL, 2),
-                        'MAE_Rp':      round(mae_PSOSL, 2),
-                        'MAPE_%':      round(mape_PSOSL, 4),
-                        'Epoch_Final': best_epochs_PSOSL
+                        'MAPE_%':      round(mape_PSOSL, 1)
                     }
     
                     df_PSOSL_results = pd.DataFrame([result_entry_PSOSL])
@@ -885,10 +882,7 @@ if uploaded_file is not None:
                         'Batch':       GS_BATCH,
                         'Train_Loss':  round(train_loss_gs, 8),
                         'Val_Loss':    round(val_loss_gs, 8),
-                        'RMSE_Rp':     round(rmse_gs, 2),
-                        'MAE_Rp':      round(mae_gs, 2),
-                        'MAPE_%':      round(mape_gs, 4),
-                        'Epoch_Final': epoch_stopped_gs
+                        'MAPE_%':      round(mape_gs, 3)
                     }
     
                     df_gs_results = pd.DataFrame([result_gs])
@@ -1001,18 +995,14 @@ if uploaded_file is not None:
                     mae_p  = mean_absolute_error(res_pso['y_test'], res_pso['y_pred'])
                     rows.append({
                         'Model':   'GRU-PSO',
-                        'RMSE':    round(rmse_p, 2),
-                        'MAE':     round(mae_p, 2),
-                        'MAPE (%)': round(res_pso['mape'], 4)
+                        'MAPE (%)': round(res_pso['mape'], 1)
                     })
                 if res_gs is not None:
                     rmse_g = np.sqrt(mean_squared_error(res_gs['y_test'], res_gs['y_pred']))
                     mae_g  = mean_absolute_error(res_gs['y_test'], res_gs['y_pred'])
                     rows.append({
                         'Model':   'GRU Standar',
-                        'RMSE':    round(rmse_g, 2),
-                        'MAE':     round(mae_g, 2),
-                        'MAPE (%)': round(res_gs['mape'], 4)
+                        'MAPE (%)': round(res_gs['mape'], 3)
                     })
     
                 df_cmp = pd.DataFrame(rows)
