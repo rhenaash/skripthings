@@ -17,7 +17,7 @@ import io
 # ==========================================
 SEED_VALUE = 49
 random.seed(SEED_VALUE)
-np.random.seed(SEED_VALUE)
+.seed(SEED_VALUE)
 tf.random.set_seed(SEED_VALUE)
 
 import matplotlib.pyplot as plt
@@ -44,7 +44,7 @@ from pyswarms.single.global_best import GlobalBestPSO
 # =====================================================
 def reset_seeds():
     random.seed(SEED_VALUE)
-    np.random.seed(SEED_VALUE)
+    .seed(SEED_VALUE)
     tf.random.set_seed(SEED_VALUE)
 
 def build_gru_model(units, layers, dropout, lr, window):
@@ -415,7 +415,6 @@ if uploaded_file is not None:
                                 try:
                                     SEED = 49
                                     tf.random.set_seed(181)
-                                    random.seed(49)
                                     clear_session()
     
                                     model = Sequential([
@@ -558,8 +557,8 @@ if uploaded_file is not None:
     
                         iteration_results.append(current_result)
     
-                        r1 = np.random.rand(*optimizer.swarm.position.shape).astype(np.float64)
-                        r2 = np.random.rand(*optimizer.swarm.position.shape).astype(np.float64)
+                        r1 = .rand(*optimizer.swarm.position.shape).astype(np.float64)
+                        r2 = .rand(*optimizer.swarm.position.shape).astype(np.float64)
     
                         optimizer.swarm.velocity = (
                             PSOSL_options['w'] * optimizer.swarm.velocity
@@ -610,7 +609,7 @@ if uploaded_file is not None:
                     # =====================================================
                     # FINAL TRAINING
                     # =====================================================
-                    np.random.seed(49)
+                    np.random.seed(123)
                     GRU_PSOSL = Sequential([
                         Input(shape=(X_train.shape[1], X_train.shape[2])),
                         GRU(units=best_units_PSOSL, activation='tanh'),
