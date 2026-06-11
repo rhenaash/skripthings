@@ -18,7 +18,7 @@ import io
 SEED_VALUE = 49
 random.seed(SEED_VALUE)
 np.random.seed(SEED_VALUE)
-.set_seed(SEED_VALUE)
+tf.random.set_seed(SEED_VALUE)
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -45,7 +45,7 @@ from pyswarms.single.global_best import GlobalBestPSO
 def reset_seeds():
     random.seed(SEED_VALUE)
     np.random.seed(SEED_VALUE)
-    .set_seed(SEED_VALUE)
+    tf.random..set_seed(SEED_VALUE)
 
 def build_gru_model(units, layers, dropout, lr, window):
     n_features = 1
