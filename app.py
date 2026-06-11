@@ -18,7 +18,7 @@ import io
 SEED_VALUE = 49
 random.seed(SEED_VALUE)
 np.random.seed(SEED_VALUE)
-tf.random.set_seed(SEED_VALUE)
+.set_seed(SEED_VALUE)
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -45,7 +45,7 @@ from pyswarms.single.global_best import GlobalBestPSO
 def reset_seeds():
     random.seed(SEED_VALUE)
     np.random.seed(SEED_VALUE)
-    tf.random.set_seed(SEED_VALUE)
+    .set_seed(SEED_VALUE)
 
 def build_gru_model(units, layers, dropout, lr, window):
     n_features = 1
@@ -415,7 +415,7 @@ if uploaded_file is not None:
                                 try:
                                     SEED = 49
                                     tf.random.set_seed(181)
-                                    random.seed(49)
+                                    random.seed(181)
                                     clear_session()
     
                                     model = Sequential([
@@ -610,7 +610,7 @@ if uploaded_file is not None:
                     # =====================================================
                     # FINAL TRAINING
                     # =====================================================
-                    np.random.seed(123)
+                    np.random.seed(181)
                     GRU_PSOSL = Sequential([
                         Input(shape=(X_train.shape[1], X_train.shape[2])),
                         GRU(units=best_units_PSOSL, activation='tanh'),
