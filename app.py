@@ -496,7 +496,7 @@ if uploaded_file is not None:
                     # =====================================================
                     # LOOP PSO
                     # =====================================================
-                    tf.random.set_seed(189)
+                    tf.random.set_seed(181)
                     max_iter_colab = df_colab_cost['iteration'].max()
     
                     for it in range(PSOSL_iters):
